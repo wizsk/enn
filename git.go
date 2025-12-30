@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-func newCmd(buf io.Writer, cmd string, args ...string) *exec.Cmd {
+func newCmd(o, e io.Writer, cmd string, args ...string) *exec.Cmd {
 	c := exec.Command(cmd, args...)
 	c.Stdin = os.Stdin
-	c.Stderr = buf
-	c.Stdout = buf
+	c.Stderr = e
+	c.Stdout = o
 	// c.Stdout = os.Stdout
 	// c.Stderr = os.Stderr
 	return c
@@ -28,7 +28,7 @@ func (app *App) initGitRepo() error {
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		app.log("Initializing git repository")
 		buf.Reset()
-		cmd := newCmd(buf, "git", "init")
+		cmd := newCmd(buf, buf, "git", "init")
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
@@ -59,7 +59,7 @@ func (app *App) initGitRepo() error {
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		buf.Reset()
-		cmd = newCmd(buf, "git", "add", ".gitignore")
+		cmd = newCmd(buf, buf, "git", "add", ".gitignore")
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
@@ -67,7 +67,7 @@ func (app *App) initGitRepo() error {
 		}
 
 		buf.Reset()
-		cmd = newCmd(buf, "git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
+		cmd = newCmd(buf, buf, "git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
@@ -83,7 +83,7 @@ func (app *App) gitCommit() error {
 	app.log("Starting git commit")
 
 	buf := new(bytes.Buffer)
-	cmd := newCmd(buf, "git", "add", "*.enc", ".gitignore", ".manifest.json")
+	cmd := newCmd(buf, buf, "git", "add", "*.enc", ".gitignore", ".manifest.json")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		fmt.Println(buf.String())
@@ -103,7 +103,7 @@ func (app *App) gitCommit() error {
 	commitMsg := fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
 
 	buf.Reset()
-	cmd = newCmd(buf, "git", "commit", "-m", commitMsg)
+	cmd = newCmd(buf, buf, "git", "commit", "-m", commitMsg)
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		fmt.Println(buf.String())
@@ -125,14 +125,15 @@ func (app *App) gitCommit() error {
 }
 
 func (app *App) gitPush() error {
-	buf := new(bytes.Buffer)
-	cmd := newCmd(buf, "git", "push")
+	cmd := newCmd(os.Stdin, os.Stderr, "git", "push")
 	cmd.Dir = app.config.NotesDir
-	if err := cmd.Run(); err != nil {
-		fmt.Println(buf.String())
-		return err
-	}
-	return nil
+	return cmd.Run()
+}
+
+func (app *App) gitPull() error {
+	cmd := newCmd(os.Stdin, os.Stderr, "git", "pull")
+	cmd.Dir = app.config.NotesDir
+	return cmd.Run()
 }
 
 const gitignoreContent = `# Ignore all files by default

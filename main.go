@@ -21,6 +21,7 @@ func main() {
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
 	cleanFlag := flag.Bool("clean", false, "cleanup or delete deleted notes")
 	gpushFlag := flag.Bool("push", false, "git push")
+	gpullFlag := flag.Bool("pull", false, "git pull")
 	flag.Parse()
 
 	app := &App{
@@ -56,6 +57,14 @@ func main() {
 
 	if *gpushFlag {
 		if err := app.gitPush(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *gpullFlag {
+		if err := app.gitPull(); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
