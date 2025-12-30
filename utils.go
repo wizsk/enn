@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -124,35 +125,59 @@ func (app *App) verifyBackup() error {
 	verified := 0
 	failed := 0
 
-	for _, encFile := range encFiles {
-		originalFile := strings.TrimSuffix(encFile, ".enc")
+	maxWorkers := min(runtime.NumCPU()*2, len(encFiles))
+	jobs := make(chan string, maxWorkers)
 
-		if _, err := os.Stat(originalFile); err == nil {
-			// Original exists, verify match
-			if err := app.verifyEncryption(originalFile, encFile); err != nil {
-				app.warning(fmt.Sprintf("Verification mismatch: %s", filepath.Base(encFile)))
-				failed++
-				continue
+	// do not buffer
+	done := make(chan bool)
+
+	for range maxWorkers {
+		go func(j <-chan string, res chan<- bool) {
+			for encFile := range jobs {
+				originalFile := strings.TrimSuffix(encFile, ".enc")
+
+				if _, err := os.Stat(originalFile); err == nil {
+					// Original exists, verify match
+					if err := app.verifyEncryption(originalFile, encFile); err != nil {
+						app.warning(fmt.Sprintf("Verification mismatch: %s", filepath.Base(encFile)))
+						res <- false
+						continue
+					}
+				} else {
+					// Just verify decryption works
+					if _, err := app.decryptFile(encFile); err != nil {
+						app.warning(fmt.Sprintf("Cannot decrypt: %s", filepath.Base(encFile)))
+						res <- false
+						continue
+					}
+				}
+
+				res <- true
 			}
-		} else {
-			// Just verify decryption works
-			if _, err := app.decryptFile(encFile); err != nil {
-				app.warning(fmt.Sprintf("Cannot decrypt: %s", filepath.Base(encFile)))
-				failed++
-				continue
-			}
+		}(jobs, done)
+	}
+
+	go func() {
+		for _, encFile := range encFiles {
+			jobs <- encFile
 		}
+		close(jobs)
+	}()
 
-		verified++
+	for range encFiles {
+		if <-done {
+			verified++
+		} else {
+			failed++
+		}
 	}
 
 	if failed == 0 {
 		app.success(fmt.Sprintf("All %d encrypted files verified successfully", verified))
-	} else {
-		return fmt.Errorf("%d files failed verification out of %d total", failed, verified+failed)
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("%d files failed verification out of %d total", failed, verified+failed)
 }
 
 func (app *App) showStatus() {
