@@ -123,16 +123,18 @@ func (app *App) encryptNotes(manifest *FileManifest) error {
 	}()
 
 	errs := []error{}
+	results := make([]result, 0, len(mdFiles))
 	for range mdFiles {
 		val := <-done
 		if val.err != nil {
 			errs = append(errs, val.err)
 		} else if val.suc {
 			successCount++
-			manifest.Files[val.fn] = val.fi
 		} else {
 			skippedCount++
 		}
+
+		results = append(results, val)
 	}
 
 	if len(errs) > 0 {
@@ -140,6 +142,13 @@ func (app *App) encryptNotes(manifest *FileManifest) error {
 			app.errorMsg(err.Error())
 		}
 		return fmt.Errorf("While encrypting errs encountered")
+	}
+
+	// for cocurrent
+	for _, val := range results {
+		if val.fn != "" {
+			manifest.Files[val.fn] = val.fi
+		}
 	}
 
 	if successCount > 0 || skippedCount > 0 {
