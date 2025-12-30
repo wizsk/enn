@@ -9,12 +9,20 @@ import (
 	"time"
 )
 
+func newCmd(cmd string, args ...string) *exec.Cmd {
+	c := exec.Command(cmd, args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c
+}
+
 func (app *App) initGitRepo() error {
 	gitDir := filepath.Join(app.config.NotesDir, ".git")
 
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		app.log("Initializing git repository")
-		cmd := exec.Command("git", "init")
+		cmd := newCmd("git", "init")
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to initialize git: %w", err)
@@ -64,14 +72,14 @@ func (app *App) initGitRepo() error {
 	}
 
 	// Initial commit if needed
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := newCmd("git", "rev-parse", "HEAD")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
-		cmd = exec.Command("git", "add", ".gitignore")
+		cmd = newCmd("git", "add", ".gitignore")
 		cmd.Dir = app.config.NotesDir
 		cmd.Run()
 
-		cmd = exec.Command("git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
+		cmd = newCmd("git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
 		cmd.Dir = app.config.NotesDir
 		cmd.Run()
 		app.success("Initial commit created")
@@ -83,14 +91,14 @@ func (app *App) initGitRepo() error {
 func (app *App) gitCommit() error {
 	app.log("Starting git commit")
 
-	cmd := exec.Command("git", "add", "*.enc", ".gitignore", ".manifest.json")
+	cmd := newCmd("git", "add", "*.enc", ".gitignore", ".manifest.json")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git add failed: %w", err)
 	}
 
 	// Check if there are changes
-	cmd = exec.Command("git", "diff", "--cached", "--quiet")
+	cmd = newCmd("git", "diff", "--cached", "--quiet")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err == nil {
 		app.info("No changes to commit")
@@ -101,7 +109,7 @@ func (app *App) gitCommit() error {
 	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
 	commitMsg := fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
 
-	cmd = exec.Command("git", "commit", "-m", commitMsg)
+	cmd = newCmd("git", "commit", "-m", commitMsg)
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git commit failed: %w", err)
@@ -112,7 +120,7 @@ func (app *App) gitCommit() error {
 	// Show recent commits
 	fmt.Println()
 	app.info("Recent backups:")
-	cmd = exec.Command("git", "log", "--oneline", "-5")
+	cmd = newCmd("git", "log", "--oneline", "-5")
 	cmd.Dir = app.config.NotesDir
 	cmd.Stdout = os.Stdout
 	cmd.Run()
@@ -122,10 +130,7 @@ func (app *App) gitCommit() error {
 }
 
 func (app *App) gitPush() error {
-	cmd := exec.Command("git", "push")
+	cmd := newCmd("git", "push")
 	cmd.Dir = app.config.NotesDir
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
