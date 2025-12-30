@@ -237,21 +237,21 @@ func (app *App) log(message string) {
 }
 
 func (app *App) success(message string) {
-	color.Green("✓ %s", message)
+	color.Green("SUCC: %s", message)
 	app.log("SUCCESS: " + message)
 }
 
 func (app *App) warning(message string) {
-	color.Yellow("⚠ %s", message)
+	color.Yellow("WARN: %s", message)
 	app.log("WARNING: " + message)
 }
 
 func (app *App) info(message string) {
-	color.Cyan("ℹ %s", message)
+	color.Cyan("INFO: %s", message)
 }
 
 func (app *App) errorMsg(message string) {
-	color.Red("✗ %s", message)
+	color.Red("ERRO: %s", message)
 	app.log("ERROR: " + message)
 }
 
