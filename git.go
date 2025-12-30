@@ -120,3 +120,11 @@ func (app *App) gitCommit() error {
 
 	return nil
 }
+
+func (app *App) gitPush() error {
+	cmd := exec.Command("git", "push")
+	cmd.Dir = app.config.NotesDir
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}

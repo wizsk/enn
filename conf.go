@@ -106,6 +106,8 @@ func (app *App) loadConfig() error {
 		return fmt.Errorf("notes directory no longer exists: %s", app.config.NotesDir)
 	}
 
+	// Set manifest file path
+	app.manifestFile = filepath.Join(app.config.NotesDir, ".manifest.json")
 	return nil
 }
 

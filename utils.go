@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"fmt"
@@ -227,4 +228,61 @@ func (app *App) info(message string) {
 func (app *App) errorMsg(message string) {
 	color.Red("✗ %s", message)
 	app.log("ERROR: " + message)
+}
+
+type confirmPromtVal uint
+
+const (
+	confirmPromtDefaultNone confirmPromtVal = iota
+	confirmPromtDefaultYes
+	confirmPromtDefaultNo
+)
+
+func confirmPromt(msg string, promt confirmPromtVal) bool {
+	for {
+		reader := bufio.NewScanner(os.Stdin)
+
+		switch promt {
+		case confirmPromtDefaultYes:
+			fmt.Print(msg, " (Y/n): ")
+		case confirmPromtDefaultNo:
+			fmt.Print(msg, " (y/N): ")
+
+		case confirmPromtDefaultNone:
+			fallthrough
+		default:
+			fmt.Print(msg, " (y/n): ")
+		}
+
+		reader.Scan()
+		res := strings.ToLower(reader.Text())
+
+		switch res {
+		case "y":
+			return true
+		case "n":
+			return false
+		case "":
+			switch promt {
+			case confirmPromtDefaultYes:
+				return true
+			case confirmPromtDefaultNo:
+				return false
+			}
+
+			fallthrough
+		default:
+			fmt.Println("Invalid input.")
+		}
+	}
+}
+
+func enc_md_map(s []string) map[string]struct{} {
+	r := make(map[string]struct{}, len(s))
+	for _, v := range s {
+		v = strings.TrimSuffix(v, ".md")
+		v = strings.TrimSuffix(v, ".enc")
+		r[v] = struct{}{}
+	}
+	return r
 }

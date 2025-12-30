@@ -12,11 +12,14 @@ import (
 func main() {
 	// Command line flags
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
-	decryptFlag := flag.String("decrypt", "", "Decrypt a specific file (provide path to .enc file)")
+	decryptFileFlag := flag.String("decrypt", "", "Decrypt a specific file (provide path to .enc file)")
 	decryptAllFlag := flag.Bool("decrypt-all", false, "Decrypt all .enc files in notes directory")
 	outputFlag := flag.String("output", "", "Output file for decryption (default: stdout for single file)")
 	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
+	changePassFlag := flag.Bool("change-pass", false, "chagne password")
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
+	cleanFlag := flag.Bool("clean", false, "cleanup or delete deleted notes")
+	gpushFlag := flag.Bool("push", false, "git push")
 	flag.Parse()
 
 	app := &App{
@@ -50,6 +53,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *gpushFlag {
+		if err := app.gitPush(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *cleanFlag {
+		if err := app.cleanNotes(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *changePassFlag {
+		app.changePass()
+		os.Exit(0)
+	}
+
 	if *confirmPassFlag {
 		if err := app.checkPasswordVerification(true); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
@@ -68,8 +92,8 @@ func main() {
 	}
 
 	// Decrypt single file mode
-	if *decryptFlag != "" {
-		if err := app.decryptMode(*decryptFlag, *outputFlag); err != nil {
+	if *decryptFileFlag != "" {
+		if err := app.decryptMode(*decryptFileFlag, *outputFlag); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
@@ -92,13 +116,13 @@ func (app *App) initialize() error {
 		app.configDir = filepath.Join(homeDir, ".config", "enn-files")
 	}
 
-	app.configFile = filepath.Join(app.configDir, "config.json")
-	app.logFile = filepath.Join(app.configDir, "enn.log")
-
 	// Create config directory
 	if err := os.MkdirAll(app.configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
+
+	app.configFile = filepath.Join(app.configDir, "config.json")
+	app.logFile = filepath.Join(app.configDir, "enn.log")
 
 	return nil
 }
@@ -121,9 +145,6 @@ func (app *App) run() error {
 		return err
 	}
 
-	// Set manifest file path
-	app.manifestFile = filepath.Join(app.config.NotesDir, ".manifest.json")
-
 	// Load or create manifest
 	manifest, err := app.loadManifest()
 	if err != nil {
@@ -131,7 +152,7 @@ func (app *App) run() error {
 	}
 
 	// Encrypt notes
-	if err := app.encryptNotes(manifest); err != nil {
+	if err := app.encryptNotes(manifest, false); err != nil {
 		return err
 	}
 

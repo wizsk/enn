@@ -19,10 +19,12 @@ type Config struct {
 
 // FileManifest tracks file states
 type FileManifest struct {
+	// key is the file name. eg. foo.md
 	Files map[string]FileInfo `json:"files"`
 }
 
 type FileInfo struct {
+	// Name         string    `json:"name"` // fo.md
 	Hash         string    `json:"hash"`
 	LastModified time.Time `json:"last_modified"`
 	Encrypted    bool      `json:"encrypted"`
