@@ -116,7 +116,7 @@ func (app *App) encryptFile(inputPath, outputPath string) error {
 		return err
 	}
 
-	key := pbkdf2.Key(app.password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
+	key := pbkdf2.Key(app.config.Password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
 
 	// Create cipher
 	block, err := aes.NewCipher(key)
@@ -161,7 +161,7 @@ func (app *App) decryptFile(inputPath string) ([]byte, error) {
 	ciphertext := data[32:]
 
 	// Derive key
-	key := pbkdf2.Key(app.password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
+	key := pbkdf2.Key(app.config.Password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
 
 	// Create cipher
 	block, err := aes.NewCipher(key)

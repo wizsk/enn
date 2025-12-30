@@ -11,16 +11,17 @@ import (
 
 func main() {
 	// Command line flags
-	confDir := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
+	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
 	decryptFlag := flag.String("decrypt", "", "Decrypt a specific file (provide path to .enc file)")
 	decryptAllFlag := flag.Bool("decrypt-all", false, "Decrypt all .enc files in notes directory")
 	outputFlag := flag.String("output", "", "Output file for decryption (default: stdout for single file)")
+	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
 	flag.Parse()
 
 	app := &App{
 		noColor:   *noColorFlag,
-		configDir: *confDir,
+		configDir: *confDirFlag,
 	}
 
 	// Disable colors globally if flag is set
@@ -48,9 +49,13 @@ func main() {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}
-	if err := app.loadPassword(); err != nil {
-		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
-		os.Exit(1)
+
+	if *confirmPassFlag {
+		if err := app.checkPasswordVerification(true); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	// Decrypt all mode
@@ -88,8 +93,7 @@ func (app *App) initialize() error {
 	}
 
 	app.configFile = filepath.Join(app.configDir, "config.json")
-	app.passwordFile = filepath.Join(app.configDir, "password")
-	app.logFile = filepath.Join(app.configDir, "backup.log")
+	app.logFile = filepath.Join(app.configDir, "enn.log")
 
 	// Create config directory
 	if err := os.MkdirAll(app.configDir, 0700); err != nil {
@@ -108,7 +112,7 @@ func (app *App) run() error {
 	app.log("Starting backup process")
 
 	// Check password verification
-	if err := app.checkPasswordVerification(); err != nil {
+	if err := app.checkPasswordVerification(false); err != nil {
 		return err
 	}
 

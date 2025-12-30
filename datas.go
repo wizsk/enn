@@ -4,7 +4,8 @@ import "time"
 
 const (
 	verifyIntervalDays = 7
-	minPasswordLength  = 12
+	minPasswordLength  = 1
+	minSaltLength      = 1
 	pbkdf2Iterations   = 100000
 	aesKeySize         = 32 // AES-256
 )
@@ -12,6 +13,7 @@ const (
 // Config holds the application configuration
 type Config struct {
 	NotesDir   string    `json:"notes_dir"`
+	Password   []byte    `json:"password"`
 	LastVerify time.Time `json:"last_verify"`
 }
 
@@ -30,10 +32,9 @@ type FileInfo struct {
 type App struct {
 	configDir    string
 	configFile   string
-	passwordFile string
 	logFile      string
 	manifestFile string
 	config       Config
-	password     []byte
-	noColor      bool
+	// password     []byte
+	noColor bool
 }

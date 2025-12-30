@@ -8,10 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
-
-	"golang.org/x/term"
 )
 
 func (app *App) firstTimeSetup() error {
@@ -73,49 +70,19 @@ func (app *App) firstTimeSetup() error {
 	app.info(fmt.Sprintf("Enter your encryption password (minimum %d characters):", minPasswordLength))
 	app.info("If you're setting up on a new device with encrypted notes, use the SAME password.")
 
-	var password string
-	for {
-		fmt.Print("Password: ")
-		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return fmt.Errorf("failed to read password: %w", err)
-		}
-		fmt.Println()
-
-		password = string(passwordBytes)
-
-		if len(password) < minPasswordLength {
-			app.errorMsg(fmt.Sprintf("Password must be at least %d characters", minPasswordLength))
-			continue
-		}
-
-		fmt.Print("Confirm password: ")
-		confirmBytes, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return fmt.Errorf("failed to read password: %w", err)
-		}
-		fmt.Println()
-
-		if string(confirmBytes) != password {
-			app.errorMsg("Passwords don't match. Try again.")
-			continue
-		}
-
-		break
+	pass, err := genPassword(true)
+	if err != nil {
+		return err
 	}
 
 	// Save configuration
 	app.config = Config{
 		NotesDir:   notesDir,
 		LastVerify: time.Now(),
+		Password:   pass,
 	}
 
 	if err := app.saveConfig(); err != nil {
-		return err
-	}
-
-	app.password = []byte(password)
-	if err := app.savePassword(); err != nil {
 		return err
 	}
 
@@ -155,43 +122,29 @@ func (app *App) saveConfig() error {
 	return nil
 }
 
-func (app *App) loadPassword() error {
-	data, err := os.ReadFile(app.passwordFile)
-	if err != nil {
-		return fmt.Errorf("failed to read password: %w", err)
-	}
-	app.password = bytes.TrimSpace(data)
-	return nil
-}
+func (app *App) checkPasswordVerification(force bool) error {
+	if !force {
+		daysSince := time.Since(app.config.LastVerify).Hours() / 24
 
-func (app *App) savePassword() error {
-	if err := os.WriteFile(app.passwordFile, app.password, 0600); err != nil {
-		return fmt.Errorf("failed to write password: %w", err)
-	}
-	return nil
-}
+		if daysSince < verifyIntervalDays {
+			return nil
+		}
 
-func (app *App) checkPasswordVerification() error {
-	daysSince := time.Since(app.config.LastVerify).Hours() / 24
-
-	if daysSince < verifyIntervalDays {
-		return nil
+		fmt.Println()
+		app.warning(fmt.Sprintf("It's been %.0f days since last password verification", daysSince))
 	}
 
-	fmt.Println()
-	app.warning(fmt.Sprintf("It's been %.0f days since last password verification", daysSince))
 	app.info("Please verify your password:")
 
 	maxAttempts := 3
 	for attempt := range maxAttempts {
-		fmt.Print("Password: ")
-		enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
+		enteredPassword, err := genPassword(false)
 		if err != nil {
 			return fmt.Errorf("failed to read password: %w", err)
 		}
-		fmt.Println()
 
-		if bytes.Equal(bytes.TrimSpace(enteredPassword), app.password) {
+		// fmt.Printf("%x\n%x\n", enteredPassword, app.config.Password)
+		if bytes.Equal(enteredPassword, app.config.Password) {
 			app.success("Password verified!")
 			app.config.LastVerify = time.Now()
 			if err := app.saveConfig(); err != nil {
