@@ -79,7 +79,7 @@ func (app *App) initGitRepo() error {
 	return nil
 }
 
-func (app *App) gitCommit() error {
+func (app *App) gitCommit(cMsg string) error {
 	app.log("Starting git commit")
 
 	buf := new(bytes.Buffer)
@@ -100,17 +100,19 @@ func (app *App) gitCommit() error {
 
 	// Count encrypted files
 	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
-	commitMsg := fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
+	if cMsg == "" {
+		cMsg = fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
+	}
 
 	buf.Reset()
-	cmd = newCmd(buf, buf, "git", "commit", "-m", commitMsg)
+	cmd = newCmd(buf, buf, "git", "commit", "-m", cMsg)
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		fmt.Println(buf.String())
 		return fmt.Errorf("git commit failed: %w", err)
 	}
 
-	app.success(fmt.Sprintf("Git commit created: %s", commitMsg))
+	app.success(fmt.Sprintf("Git commit created: %s", cMsg))
 
 	// Show recent commits
 	fmt.Println()

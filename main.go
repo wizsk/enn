@@ -14,8 +14,8 @@ func main() {
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
 	forceEncryptFlag := flag.Bool("force-enc", false, "Enecrypt all .md files in notes directory even if .enc exists")
 	decryptAllFlag := flag.Bool("dec-all", false, "Decrypt all .enc files in notes directory")
-	decryptFileFlag := flag.String("decrypt", "", "Decrypt a specific file (provide path to .enc file)")
-	outputFlag := flag.String("output", "", "Output file for decryption (default: stdout for single file)")
+	decryptFileFlag := flag.String("dec", "", "Decrypt a specific file (provide path to .enc file)")
+	outputFlag := flag.String("out", "", "Output file for decryption (default: stdout for single file)")
 	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
 	changePassFlag := flag.Bool("change-pass", false, "chagne password")
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
@@ -45,7 +45,7 @@ func main() {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
-		app.success("Setup complete! Run without flags to encrypt notes, or use --decrypt-all to decrypt them.")
+		app.success("Setup complete! Run without flags to encrypt notes, or use --dec-all to decrypt them.")
 		return
 	}
 
@@ -187,7 +187,7 @@ func (app *App) run(forceEnc bool) error {
 		}
 
 		// Git commit
-		if err := app.gitCommit(); err != nil {
+		if err := app.gitCommit(""); err != nil {
 			return err
 		}
 	}
