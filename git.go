@@ -126,5 +126,6 @@ func (app *App) gitPush() error {
 	cmd.Dir = app.config.NotesDir
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
