@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,22 +11,27 @@ import (
 	"time"
 )
 
-func newCmd(cmd string, args ...string) *exec.Cmd {
+func newCmd(buf io.Writer, cmd string, args ...string) *exec.Cmd {
 	c := exec.Command(cmd, args...)
 	c.Stdin = os.Stdin
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
+	c.Stderr = buf
+	c.Stdout = buf
+	// c.Stdout = os.Stdout
+	// c.Stderr = os.Stderr
 	return c
 }
 
 func (app *App) initGitRepo() error {
 	gitDir := filepath.Join(app.config.NotesDir, ".git")
 
+	buf := new(bytes.Buffer)
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		app.log("Initializing git repository")
-		cmd := newCmd("git", "init")
+		buf.Reset()
+		cmd := newCmd(buf, "git", "init")
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
+			fmt.Println(buf.String())
 			return fmt.Errorf("failed to initialize git: %w", err)
 		}
 		app.success("Git repository initialized")
@@ -51,13 +58,21 @@ func (app *App) initGitRepo() error {
 	cmd := exec.Command("git", "rev-parse", "HEAD")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
-		cmd = newCmd("git", "add", ".gitignore")
+		buf.Reset()
+		cmd = newCmd(buf, "git", "add", ".gitignore")
 		cmd.Dir = app.config.NotesDir
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			fmt.Println(buf.String())
+			return fmt.Errorf("failed to initialize git: %w", err)
+		}
 
-		cmd = newCmd("git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
+		buf.Reset()
+		cmd = newCmd(buf, "git", "commit", "-m", "Initial commit: Setup encrypted notes repository")
 		cmd.Dir = app.config.NotesDir
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			fmt.Println(buf.String())
+			return fmt.Errorf("failed to initialize git: %w", err)
+		}
 		app.success("Initial commit created")
 	}
 
@@ -67,9 +82,11 @@ func (app *App) initGitRepo() error {
 func (app *App) gitCommit() error {
 	app.log("Starting git commit")
 
-	cmd := newCmd("git", "add", "*.enc", ".gitignore", ".manifest.json")
+	buf := new(bytes.Buffer)
+	cmd := newCmd(buf, "git", "add", "*.enc", ".gitignore", ".manifest.json")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
+		fmt.Println(buf.String())
 		return fmt.Errorf("git add failed: %w", err)
 	}
 
@@ -85,9 +102,11 @@ func (app *App) gitCommit() error {
 	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
 	commitMsg := fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
 
-	cmd = newCmd("git", "commit", "-m", commitMsg)
+	buf.Reset()
+	cmd = newCmd(buf, "git", "commit", "-m", commitMsg)
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
+		fmt.Println(buf.String())
 		return fmt.Errorf("git commit failed: %w", err)
 	}
 
@@ -106,9 +125,14 @@ func (app *App) gitCommit() error {
 }
 
 func (app *App) gitPush() error {
-	cmd := newCmd("git", "push")
+	buf := new(bytes.Buffer)
+	cmd := newCmd(buf, "git", "push")
 	cmd.Dir = app.config.NotesDir
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		fmt.Println(buf.String())
+		return err
+	}
+	return nil
 }
 
 const gitignoreContent = `# Ignore all files by default
