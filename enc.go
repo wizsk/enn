@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -31,71 +32,114 @@ func (app *App) encryptNotes(manifest *FileManifest) error {
 	successCount := 0
 	skippedCount := 0
 
-	for _, mdFile := range mdFiles {
-		filename := filepath.Base(mdFile)
-		encryptedFile := mdFile + ".enc"
+	maxWorkers := min(runtime.NumCPU()*2, len(mdFiles))
+	jobs := make(chan string, maxWorkers)
 
-		// Get file info
-		fileInfo, err := os.Stat(mdFile)
-		if err != nil {
-			return fmt.Errorf("failed to stat %s: %w", filename, err)
-		}
+	// do not buffer
+	type result struct {
+		suc bool
+		err error
+		fn  string
+		fi  FileInfo
+	}
+	done := make(chan result)
 
-		// Calculate hash
-		hash, err := app.fileHash(mdFile)
-		if err != nil {
-			return fmt.Errorf("failed to hash %s: %w", filename, err)
-		}
+	for range maxWorkers {
+		go func(j <-chan string, res chan<- result) {
+			for mdFile := range j {
+				filename := filepath.Base(mdFile)
+				encryptedFile := mdFile + ".enc"
 
-		// Check if encryption is needed
-		if oldInfo, exists := manifest.Files[filename]; exists {
-			if oldInfo.Hash == hash && oldInfo.Encrypted {
-				skippedCount++
-				continue
+				// Get file info
+				fileInfo, err := os.Stat(mdFile)
+				if err != nil {
+					res <- result{suc: false, err: fmt.Errorf("failed to stat %s: %w", filename, err)}
+				}
+
+				// Calculate hash
+				hash, err := app.fileHash(mdFile)
+				if err != nil {
+					res <- result{suc: false, err: fmt.Errorf("failed to hash %s: %w", filename, err)}
+				}
+
+				// Check if encryption is needed
+				if oldInfo, exists := manifest.Files[filename]; exists {
+					if oldInfo.Hash == hash && oldInfo.Encrypted {
+						res <- result{suc: false}
+						continue
+					}
+				}
+
+				app.info(fmt.Sprintf("Encrypting: %s", filename))
+
+				// Backup existing encrypted file
+				backupFile := encryptedFile + ".backup"
+				if _, err := os.Stat(encryptedFile); err == nil {
+					if err := app.copyFile(encryptedFile, backupFile); err != nil {
+						res <- result{suc: false, err: fmt.Errorf("failed to backup %s: %w", filename, err)}
+					}
+				}
+
+				// Encrypt file
+				if err := app.encryptFile(mdFile, encryptedFile); err != nil {
+					os.Remove(encryptedFile)
+					if _, err := os.Stat(backupFile); err == nil {
+						os.Rename(backupFile, encryptedFile)
+					}
+					res <- result{suc: false, err: fmt.Errorf("failed to encrypt %s: %w", filename, err)}
+				}
+
+				// Verify encryption
+				if err := app.verifyEncryption(mdFile, encryptedFile); err != nil {
+					os.Remove(encryptedFile)
+					if _, err := os.Stat(backupFile); err == nil {
+						os.Rename(backupFile, encryptedFile)
+					}
+					res <- result{suc: false, err: fmt.Errorf("verification failed for %s: %w", filename, err)}
+				}
+
+				// Success - remove backup
+				os.Remove(backupFile)
+
+				app.success(fmt.Sprintf("Encrypted and verified: %s", filename))
+				// Update manifest
+				fi := FileInfo{
+					// Name:         filename,
+					Hash:         hash,
+					LastModified: fileInfo.ModTime(),
+					Encrypted:    true,
+				}
+
+				res <- result{true, nil, filename, fi}
 			}
+		}(jobs, done)
+	}
+
+	go func() {
+		for _, mdFile := range mdFiles {
+			jobs <- mdFile
 		}
+		close(jobs)
+	}()
 
-		app.info(fmt.Sprintf("Encrypting: %s", filename))
-
-		// Backup existing encrypted file
-		backupFile := encryptedFile + ".backup"
-		if _, err := os.Stat(encryptedFile); err == nil {
-			if err := app.copyFile(encryptedFile, backupFile); err != nil {
-				return fmt.Errorf("failed to backup %s: %w", filename, err)
-			}
+	errs := []error{}
+	for range mdFiles {
+		val := <-done
+		if val.err != nil {
+			errs = append(errs, val.err)
+		} else if val.suc {
+			successCount++
+			manifest.Files[val.fn] = val.fi
+		} else {
+			skippedCount++
 		}
+	}
 
-		// Encrypt file
-		if err := app.encryptFile(mdFile, encryptedFile); err != nil {
-			os.Remove(encryptedFile)
-			if _, err := os.Stat(backupFile); err == nil {
-				os.Rename(backupFile, encryptedFile)
-			}
-			return fmt.Errorf("failed to encrypt %s: %w", filename, err)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			app.errorMsg(err.Error())
 		}
-
-		// Verify encryption
-		if err := app.verifyEncryption(mdFile, encryptedFile); err != nil {
-			os.Remove(encryptedFile)
-			if _, err := os.Stat(backupFile); err == nil {
-				os.Rename(backupFile, encryptedFile)
-			}
-			return fmt.Errorf("verification failed for %s: %w", filename, err)
-		}
-
-		// Success - remove backup
-		os.Remove(backupFile)
-
-		// Update manifest
-		manifest.Files[filename] = FileInfo{
-			// Name:         filename,
-			Hash:         hash,
-			LastModified: fileInfo.ModTime(),
-			Encrypted:    true,
-		}
-
-		app.success(fmt.Sprintf("Encrypted and verified: %s", filename))
-		successCount++
+		return fmt.Errorf("While encrypting errs encountered")
 	}
 
 	if successCount > 0 || skippedCount > 0 {
