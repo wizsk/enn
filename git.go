@@ -32,32 +32,8 @@ func (app *App) initGitRepo() error {
 
 	// Create/update .gitignore
 	gitignorePath := filepath.Join(app.config.NotesDir, ".gitignore")
-	gitignoreContent := `# Ignore all files by default
-*
-
-# Allow encrypted files
-!*.enc
-
-# Allow git files
-!.gitignore
-!.gitattributes
-!.manifest.json
-
-# Ignore unencrypted notes
-*.md
-*.txt
-*.doc
-*.docx
-*.pdf
-
-# Ignore temp files
-*.tmp
-*.swp
-*~
-.DS_Store
-`
-
 	existingContent, err := os.ReadFile(gitignorePath)
+
 	if err == nil && strings.Contains(string(existingContent), "!*.enc") {
 		app.info(".gitignore already configured correctly")
 	} else {
@@ -72,7 +48,7 @@ func (app *App) initGitRepo() error {
 	}
 
 	// Initial commit if needed
-	cmd := newCmd("git", "rev-parse", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "HEAD")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		cmd = newCmd("git", "add", ".gitignore")
@@ -98,7 +74,7 @@ func (app *App) gitCommit() error {
 	}
 
 	// Check if there are changes
-	cmd = newCmd("git", "diff", "--cached", "--quiet")
+	cmd = exec.Command("git", "diff", "--cached", "--quiet")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err == nil {
 		app.info("No changes to commit")
@@ -120,7 +96,7 @@ func (app *App) gitCommit() error {
 	// Show recent commits
 	fmt.Println()
 	app.info("Recent backups:")
-	cmd = newCmd("git", "log", "--oneline", "-5")
+	cmd = exec.Command("git", "log", "--oneline", "-5")
 	cmd.Dir = app.config.NotesDir
 	cmd.Stdout = os.Stdout
 	cmd.Run()
@@ -134,3 +110,28 @@ func (app *App) gitPush() error {
 	cmd.Dir = app.config.NotesDir
 	return cmd.Run()
 }
+
+const gitignoreContent = `# Ignore all files by default
+*
+
+# Allow encrypted files
+!*.enc
+
+# Allow git files
+!.gitignore
+!.gitattributes
+!.manifest.json
+
+# Ignore unencrypted notes
+*.md
+*.txt
+*.doc
+*.docx
+*.pdf
+
+# Ignore temp files
+*.tmp
+*.swp
+*~
+.DS_Store
+`
