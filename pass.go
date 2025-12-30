@@ -37,12 +37,13 @@ func (app *App) changePass() {
 	}
 
 	manifest := &FileManifest{make(map[string]FileInfo)}
-	if err = app.encryptNotes(manifest); err != nil {
+	newManifest, err := app.encryptNotes(manifest)
+	if err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}
 
-	if err = app.saveManifest(manifest); err != nil {
+	if err = app.saveManifest(newManifest); err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}

@@ -16,17 +16,17 @@ import (
 )
 
 // if manifest is new then all the notes are naturally forcefully encryped
-func (app *App) encryptNotes(manifest *FileManifest) error {
+func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
 	app.log("Starting encryption process")
 
 	mdFiles, err := filepath.Glob(filepath.Join(app.config.NotesDir, "*.md"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(mdFiles) == 0 {
 		app.warning("No .md files found")
-		return nil
+		return nil, nil
 	}
 
 	successCount := 0
@@ -65,7 +65,7 @@ func (app *App) encryptNotes(manifest *FileManifest) error {
 				// Check if encryption is needed
 				if oldInfo, exists := manifest.Files[filename]; exists {
 					if oldInfo.Hash == hash && oldInfo.Encrypted {
-						res <- result{suc: false}
+						res <- result{suc: false, fn: filename, fi: oldInfo}
 						continue
 					}
 				}
@@ -123,39 +123,32 @@ func (app *App) encryptNotes(manifest *FileManifest) error {
 	}()
 
 	errs := []error{}
-	results := make([]result, 0, len(mdFiles))
+	newMenifest := &FileManifest{make(map[string]FileInfo, len(mdFiles))}
 	for range mdFiles {
 		val := <-done
 		if val.err != nil {
 			errs = append(errs, val.err)
+			continue
 		} else if val.suc {
 			successCount++
 		} else {
 			skippedCount++
 		}
-
-		results = append(results, val)
+		newMenifest.Files[val.fn] = val.fi
 	}
 
 	if len(errs) > 0 {
 		for _, err := range errs {
 			app.errorMsg(err.Error())
 		}
-		return fmt.Errorf("While encrypting errs encountered")
-	}
-
-	// for cocurrent
-	for _, val := range results {
-		if val.fn != "" {
-			manifest.Files[val.fn] = val.fi
-		}
+		return newMenifest, fmt.Errorf("While encrypting errs encountered")
 	}
 
 	if successCount > 0 || skippedCount > 0 {
 		app.success(fmt.Sprintf("Encryption summary: %d encrypted, %d unchanged", successCount, skippedCount))
 	}
 
-	return nil
+	return newMenifest, nil
 }
 
 func (app *App) encryptFile(inputPath, outputPath string) error {

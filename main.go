@@ -168,7 +168,8 @@ func (app *App) run(forceEnc bool) error {
 	}
 
 	// Encrypt notes
-	if err := app.encryptNotes(manifest); err != nil {
+	manifest, err := app.encryptNotes(manifest)
+	if err != nil {
 		return err
 	}
 
@@ -177,14 +178,18 @@ func (app *App) run(forceEnc bool) error {
 		return err
 	}
 
-	// Verify backup
-	if err := app.verifyBackup(); err != nil {
-		return err
-	}
+	if manifest == nil || len(manifest.Files) == 0 {
+		app.warning("No files found to encrypt. Skipping verifications and git commit")
+	} else {
+		// Verify backup
+		if err := app.verifyBackup(); err != nil {
+			return err
+		}
 
-	// Git commit
-	if err := app.gitCommit(); err != nil {
-		return err
+		// Git commit
+		if err := app.gitCommit(); err != nil {
+			return err
+		}
 	}
 
 	// Show status
