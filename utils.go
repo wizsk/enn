@@ -276,13 +276,3 @@ func confirmPromt(msg string, promt confirmPromtVal) bool {
 		}
 	}
 }
-
-func enc_md_map(s []string) map[string]struct{} {
-	r := make(map[string]struct{}, len(s))
-	for _, v := range s {
-		v = strings.TrimSuffix(v, ".md")
-		v = strings.TrimSuffix(v, ".enc")
-		r[v] = struct{}{}
-	}
-	return r
-}
