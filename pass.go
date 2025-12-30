@@ -37,7 +37,7 @@ func (app *App) changePass() {
 	}
 
 	manifest := &FileManifest{make(map[string]FileInfo)}
-	if err = app.encryptNotes(manifest, true); err != nil {
+	if err = app.encryptNotes(manifest); err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}

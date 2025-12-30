@@ -12,8 +12,9 @@ import (
 func main() {
 	// Command line flags
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
+	forceEncryptFlag := flag.Bool("force-enc", false, "Enecrypt all .md files in notes directory even if .enc exists")
+	decryptAllFlag := flag.Bool("dec-all", false, "Decrypt all .enc files in notes directory")
 	decryptFileFlag := flag.String("decrypt", "", "Decrypt a specific file (provide path to .enc file)")
-	decryptAllFlag := flag.Bool("decrypt-all", false, "Decrypt all .enc files in notes directory")
 	outputFlag := flag.String("output", "", "Output file for decryption (default: stdout for single file)")
 	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
 	changePassFlag := flag.Bool("change-pass", false, "chagne password")
@@ -101,7 +102,7 @@ func main() {
 	}
 
 	// Normal backup/encrypt mode
-	if err := app.run(); err != nil {
+	if err := app.run(*forceEncryptFlag); err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}
@@ -127,7 +128,7 @@ func (app *App) initialize() error {
 	return nil
 }
 
-func (app *App) run() error {
+func (app *App) run(forceEnc bool) error {
 	fmt.Println("==========================================")
 	fmt.Println("  Encrypt & Backup Notes")
 	fmt.Println("==========================================")
@@ -146,13 +147,19 @@ func (app *App) run() error {
 	}
 
 	// Load or create manifest
-	manifest, err := app.loadManifest()
-	if err != nil {
-		return err
+	var manifest *FileManifest
+	if forceEnc {
+		manifest = &FileManifest{make(map[string]FileInfo)}
+	} else {
+		m, err := app.loadManifest()
+		if err != nil {
+			return err
+		}
+		manifest = m
 	}
 
 	// Encrypt notes
-	if err := app.encryptNotes(manifest, false); err != nil {
+	if err := app.encryptNotes(manifest); err != nil {
 		return err
 	}
 

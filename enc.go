@@ -14,7 +14,8 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func (app *App) encryptNotes(manifest *FileManifest, force bool) error {
+// if manifest is new then all the notes are naturally forcefully encryped
+func (app *App) encryptNotes(manifest *FileManifest) error {
 	app.log("Starting encryption process")
 
 	mdFiles, err := filepath.Glob(filepath.Join(app.config.NotesDir, "*.md"))
@@ -46,13 +47,11 @@ func (app *App) encryptNotes(manifest *FileManifest, force bool) error {
 			return fmt.Errorf("failed to hash %s: %w", filename, err)
 		}
 
-		if !force {
-			// Check if encryption is needed
-			if oldInfo, exists := manifest.Files[filename]; exists {
-				if oldInfo.Hash == hash && oldInfo.Encrypted {
-					skippedCount++
-					continue
-				}
+		// Check if encryption is needed
+		if oldInfo, exists := manifest.Files[filename]; exists {
+			if oldInfo.Hash == hash && oldInfo.Encrypted {
+				skippedCount++
+				continue
 			}
 		}
 
