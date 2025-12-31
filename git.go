@@ -14,8 +14,8 @@ import (
 func newCmd(o, e io.Writer, cmd string, args ...string) *exec.Cmd {
 	c := exec.Command(cmd, args...)
 	c.Stdin = os.Stdin
-	c.Stderr = e
 	c.Stdout = o
+	c.Stderr = e
 	// c.Stdout = os.Stdout
 	// c.Stderr = os.Stderr
 	return c
@@ -127,13 +127,13 @@ func (app *App) gitCommit(cMsg string) error {
 }
 
 func (app *App) gitPush() error {
-	cmd := newCmd(os.Stdin, os.Stderr, "git", "push")
+	cmd := newCmd(os.Stdout, os.Stderr, "git", "push")
 	cmd.Dir = app.config.NotesDir
 	return cmd.Run()
 }
 
 func (app *App) gitPull() error {
-	cmd := newCmd(os.Stdin, os.Stderr, "git", "pull")
+	cmd := newCmd(os.Stdout, os.Stderr, "git", "pull")
 	cmd.Dir = app.config.NotesDir
 	return cmd.Run()
 }
