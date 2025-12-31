@@ -101,7 +101,7 @@ func (app *App) gitCommit(cMsg string) error {
 	// Count encrypted files
 	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
 	if cMsg == "" {
-		cMsg = fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format("2006-01-02 15:04:05"))
+		cMsg = fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format(timeFormat))
 	}
 
 	buf.Reset()

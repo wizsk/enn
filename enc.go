@@ -53,13 +53,13 @@ func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
 				// Get file info
 				fileInfo, err := os.Stat(mdFile)
 				if err != nil {
-					res <- result{suc: false, err: fmt.Errorf("failed to stat %s: %w", filename, err)}
+					res <- result{err: fmt.Errorf("failed to stat %s: %w", filename, err)}
 				}
 
 				// Calculate hash
 				hash, err := app.fileHash(mdFile)
 				if err != nil {
-					res <- result{suc: false, err: fmt.Errorf("failed to hash %s: %w", filename, err)}
+					res <- result{err: fmt.Errorf("failed to hash %s: %w", filename, err)}
 				}
 
 				// Check if encryption is needed

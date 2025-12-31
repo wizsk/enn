@@ -14,6 +14,7 @@ func main() {
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
 	forceEncryptFlag := flag.Bool("force-enc", false, "Enecrypt all .md files in notes directory even if .enc exists")
 	decryptAllFlag := flag.Bool("dec-all", false, "Decrypt all .enc files in notes directory")
+	decNewOrModifiedFlag := flag.Bool("check-dec", false, "cehck and decrypt new/modified notes")
 	decryptFileFlag := flag.String("dec", "", "Decrypt a specific file (provide path to .enc file)")
 	outputFlag := flag.String("out", "", "Output file for decryption (default: stdout for single file)")
 	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
@@ -21,7 +22,8 @@ func main() {
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
 	cleanFlag := flag.Bool("clean", false, "cleanup or delete deleted notes")
 	gpushFlag := flag.Bool("push", false, "git push")
-	gpullFlag := flag.Bool("pull", false, "git pull")
+	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
+
 	flag.Parse()
 
 	app := &App{
@@ -65,6 +67,19 @@ func main() {
 
 	if *gpullFlag {
 		if err := app.gitPull(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		if err := app.checkAndDecNotes(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
+		os.Exit(0)
+
+	}
+
+	if *decNewOrModifiedFlag {
+		if err := app.checkAndDecNotes(); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}

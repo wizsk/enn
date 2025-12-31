@@ -8,6 +8,7 @@ const (
 	minSaltLength      = 1
 	pbkdf2Iterations   = 100000
 	aesKeySize         = 32 // AES-256
+	timeFormat         = "3:04 PM 02/01/06"
 )
 
 // Config holds the application configuration

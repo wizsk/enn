@@ -227,7 +227,7 @@ func (app *App) copyFile(src, dst string) error {
 }
 
 func (app *App) log(message string) {
-	logMsg := fmt.Sprintf("[%s] %s\n", time.Now().Format("2006-01-02 15:04:05"), message)
+	logMsg := fmt.Sprintf("[%s] %s\n", time.Now().Format(timeFormat), message)
 	f, err := os.OpenFile(app.logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return

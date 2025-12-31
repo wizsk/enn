@@ -58,7 +58,7 @@ func (app *App) changePass() {
 		}
 
 		// Git commit
-		if err := app.gitCommit(fmt.Sprintf("Password changed at %s", time.Now().Format("2006-01-02 15:04:05"))); err != nil {
+		if err := app.gitCommit(fmt.Sprintf("Password changed at %s", time.Now().Format(timeFormat))); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
