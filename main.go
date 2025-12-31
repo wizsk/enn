@@ -11,12 +11,12 @@ import (
 
 func main() {
 	// Command line flags
-	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config)")
+	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config/"+configFileName+")")
 	forceEncryptFlag := flag.Bool("force-enc", false, "Enecrypt all .md files in notes directory even if .enc exists")
 	decryptAllFlag := flag.Bool("dec-all", false, "Decrypt all .enc files in notes directory")
 	decNewOrModifiedFlag := flag.Bool("check-dec", false, "cehck and decrypt new/modified notes")
 	decryptFileFlag := flag.String("dec", "", "Decrypt a specific file (provide path to .enc file)")
-	outputFlag := flag.String("out", "", "Output file for decryption (default: stdout for single file)")
+	outputFlag := flag.String("out", "", "Output file for --dec flag (default: stdout for single file)")
 	confirmPassFlag := flag.Bool("check-pass", false, "confirm password")
 	changePassFlag := flag.Bool("change-pass", false, "chagne password")
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
@@ -24,6 +24,7 @@ func main() {
 	gpushFlag := flag.Bool("push", false, "git push")
 	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
 
+	flag.Usage = func() { fmt.Println(optionsTxt()) }
 	flag.Parse()
 
 	app := &App{
@@ -138,7 +139,7 @@ func (app *App) initialize() error {
 		if err != nil {
 			return fmt.Errorf("failed to get home directory: %w", err)
 		}
-		app.configDir = filepath.Join(homeDir, ".config", "enn-files")
+		app.configDir = filepath.Join(homeDir, ".config", configFileName)
 	}
 
 	// Create config directory
@@ -183,22 +184,26 @@ func (app *App) run(forceEnc bool) error {
 	}
 
 	// Encrypt notes
-	manifest, err := app.encryptNotes(manifest)
+	newManifest, err := app.encryptNotes(manifest)
 	if err != nil {
 		return err
 	}
 
-	// Save manifest
-	if err := app.saveManifest(manifest); err != nil {
-		return err
-	}
-
-	if manifest == nil || len(manifest.Files) == 0 {
-		app.warning("No files found to encrypt. Skipping verifications and git commit")
+	if manifest.Equal(newManifest) {
+		app.info("No new changes was made nothing to commit")
 	} else {
-		// Verify backup
-		if err := app.verifyBackup(); err != nil {
+		// Save manifest
+		if err := app.saveManifest(newManifest); err != nil {
 			return err
+		}
+
+		// Verify backup
+		if newManifest == nil || len(newManifest.Files) == 0 {
+			app.warning("No files found to encrypt. Skipping verifications")
+		} else {
+			if err := app.verifyBackup(); err != nil {
+				return err
+			}
 		}
 
 		// Git commit
@@ -212,6 +217,9 @@ func (app *App) run(forceEnc bool) error {
 
 	app.success("Backup completed successfully!")
 	app.log("Backup process completed")
+
+	fmt.Println()
+	app.warnPossibleDeletedNotes()
 
 	return nil
 }

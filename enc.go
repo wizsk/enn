@@ -16,6 +16,7 @@ import (
 )
 
 // if manifest is new then all the notes are naturally forcefully encryped
+// btw, manifest is never modified
 func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
 	app.log("Starting encryption process")
 

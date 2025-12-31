@@ -1,8 +1,12 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
 const (
+	progName           = "enn"
+	configFileName     = "enn-files"
 	verifyIntervalDays = 7
 	minPasswordLength  = 1
 	minSaltLength      = 1
