@@ -12,6 +12,7 @@ import (
 func main() {
 	// Command line flags
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config/"+configFileName+")")
+	cngConfFlag := flag.Bool("edit-conf", false, "change configuration")
 	forceEncryptFlag := flag.Bool("force-enc", false, "Enecrypt all .md files in notes directory even if .enc exists")
 	decryptAllFlag := flag.Bool("dec-all", false, "Decrypt all .enc files in notes directory")
 	decNewOrModifiedFlag := flag.Bool("check-dec", false, "cehck and decrypt new/modified notes")
@@ -91,6 +92,28 @@ func main() {
 		if err := app.cleanNotes(); err != nil {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	if *cngConfFlag {
+		fmt.Printf("Current notes directory: %s\n", app.config.NotesDir)
+		if confirmPromt("Do you want to change it?", confirmPromtDefaultNone) {
+			newNotesDir, err := getNotesDir()
+			if err != nil {
+				app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+				os.Exit(1)
+			}
+			app.config.NotesDir = newNotesDir
+			if err = app.saveConfig(); err != nil {
+				app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+				os.Exit(1)
+			}
+		}
+		fmt.Printf("Notes directory changed to: %s\n", app.config.NotesDir)
+
+		if confirmPromt("Do you want to change the password?", confirmPromtDefaultNone) {
+			app.changePass()
 		}
 		os.Exit(0)
 	}

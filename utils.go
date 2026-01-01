@@ -206,3 +206,50 @@ func confirmPromt(msg string, promt confirmPromtVal) bool {
 		}
 	}
 }
+
+func getNotesDir() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	var notesDir string
+	var err error
+
+	for {
+		fmt.Println("Enter the path to your notes directory (use ~ for your home directory):")
+		fmt.Print("> ")
+		notesDir, err = reader.ReadString('\n')
+		if err != nil {
+			return "", fmt.Errorf("failed to read notes directory: %w", err)
+		}
+		notesDir = strings.TrimSpace(notesDir)
+		if notesDir == "" {
+			continue
+		}
+
+		// Expand ~ to home directory
+		if strings.HasPrefix(notesDir, "~") {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				color.Red("failed to get path for '~': %v\n", err)
+				continue
+			}
+			notesDir = filepath.Join(homeDir, notesDir[1:])
+		}
+
+		// Convert to absolute path
+		notesDir, err = filepath.Abs(notesDir)
+		if err != nil {
+			color.Red("failed to get absolute path: %s\n", err)
+			continue
+		}
+
+		// Verify directory exists
+		if _, err := os.Stat(notesDir); os.IsNotExist(err) {
+			if err = os.Mkdir(notesDir, 0700); err != nil {
+				color.Red("directory does not exist and could not create: %s\n", notesDir)
+				continue
+			}
+		}
+		break
+	}
+
+	return notesDir, nil
+}

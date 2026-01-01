@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -17,52 +15,9 @@ func (app *App) firstTimeSetup() error {
 	fmt.Println("==========================================")
 	fmt.Println()
 
-	reader := bufio.NewReader(os.Stdin)
-
-	// Get notes directory
-	app.info("Enter the full path to your notes directory:")
-	fmt.Print("> ")
-	notesDir, err := reader.ReadString('\n')
+	notesDir, err := getNotesDir()
 	if err != nil {
-		return fmt.Errorf("failed to read notes directory: %w", err)
-	}
-	notesDir = strings.TrimSpace(notesDir)
-
-	// Expand ~ to home directory
-	if strings.HasPrefix(notesDir, "~") {
-		homeDir, _ := os.UserHomeDir()
-		notesDir = filepath.Join(homeDir, notesDir[1:])
-	}
-
-	// Convert to absolute path
-	notesDir, err = filepath.Abs(notesDir)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path: %w", err)
-	}
-
-	// Verify directory exists
-	if _, err := os.Stat(notesDir); os.IsNotExist(err) {
-		return fmt.Errorf("directory does not exist: %s", notesDir)
-	}
-
-	// Count files
-	mdFiles, _ := filepath.Glob(filepath.Join(notesDir, "*.md"))
-	encFiles, _ := filepath.Glob(filepath.Join(notesDir, "*.enc"))
-
-	if len(mdFiles) > 0 {
-		app.info(fmt.Sprintf("Found %d .md files", len(mdFiles)))
-	}
-	if len(encFiles) > 0 {
-		app.info(fmt.Sprintf("Found %d .enc encrypted files", len(encFiles)))
-	}
-
-	if len(mdFiles) == 0 && len(encFiles) == 0 {
-		app.warning("No .md or .enc files found in this directory")
-		fmt.Print("Continue anyway? (y/n): ")
-		response, _ := reader.ReadString('\n')
-		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(response)), "y") {
-			return fmt.Errorf("setup cancelled")
-		}
+		return err
 	}
 
 	// Get password

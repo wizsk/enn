@@ -12,6 +12,8 @@ func optionsTxt() string {
 ` + bu.Sprint("Options:") + `
   ` + b.Sprint("--conf-dir") + ` <path>
       Specify config dir (default: ~/.config/` + configFileName + `)
+  ` + b.Sprint("--edit-conf") + `
+      Change configurations (eg. notes directory path and more)
   ` + b.Sprint("--force-enc") + `
       Enecrypt all notes even if the note is already encryped
   ` + b.Sprint("--dec-all") + `
