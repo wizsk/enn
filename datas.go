@@ -6,19 +6,16 @@ import (
 
 const (
 	progName           = "enn"
-	configFileName     = "enn-files"
+	configFileName     = "enn-conf"
 	verifyIntervalDays = 7
-	minPasswordLength  = 1
-	minSaltLength      = 1
-	pbkdf2Iterations   = 100000
-	aesKeySize         = 32 // AES-256
+	minPasswordLength  = 8
 	timeFormat         = "3:04 PM 02/01/06"
 )
 
 // Config holds the application configuration
 type Config struct {
 	NotesDir   string    `json:"notes_dir"`
-	Password   []byte    `json:"password"`
+	Key        []byte    `json:"key"`
 	LastVerify time.Time `json:"last_verify"`
 }
 
@@ -37,11 +34,10 @@ type FileInfo struct {
 
 // App holds application state
 type App struct {
+	config       Config
 	configDir    string
 	configFile   string
 	logFile      string
 	manifestFile string
-	config       Config
-	// password     []byte
-	noColor bool
+	noColor      bool
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,8 +38,11 @@ func (app *App) decryptAllMode() error {
 
 		// Check if output file already exists
 		if _, err := os.Stat(outputFile); err == nil {
-			app.warning(fmt.Sprintf("Skipping %s (unencrypted file already exists)", filename))
-			continue
+			app.warning(fmt.Sprintf("%s (unencrypted file already exists)", filename))
+			p := fmt.Sprintf("Do you want to overwrite %q?", filename)
+			if !confirmPromt(p, confirmPromtDefaultNo) {
+				continue
+			}
 		}
 
 		app.info(fmt.Sprintf("Decrypting: %s", filename))
@@ -97,6 +101,24 @@ func (app *App) decryptMode(encryptedPath, outputPath string) error {
 	} else {
 		// Write to stdout
 		os.Stdout.Write(plaintext)
+	}
+
+	return nil
+}
+
+func (app *App) verifyEncryption(originalPath, encryptedPath string) error {
+	original, err := os.ReadFile(originalPath)
+	if err != nil {
+		return err
+	}
+
+	decrypted, err := app.decryptFile(encryptedPath)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(original, decrypted) {
+		return fmt.Errorf("decrypted content doesn't match original")
 	}
 
 	return nil

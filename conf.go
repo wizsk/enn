@@ -70,7 +70,7 @@ func (app *App) firstTimeSetup() error {
 	app.info(fmt.Sprintf("Enter your encryption password (minimum %d characters):", minPasswordLength))
 	app.info("If you're setting up on a new device with encrypted notes, use the SAME password.")
 
-	pass, err := genPassword(true)
+	key, err := genKeyFromPassword(true)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (app *App) firstTimeSetup() error {
 	app.config = Config{
 		NotesDir:   notesDir,
 		LastVerify: time.Now(),
-		Password:   pass,
+		Key:        key,
 	}
 
 	if err := app.saveConfig(); err != nil {
@@ -140,13 +140,13 @@ func (app *App) checkPasswordVerification(force bool) error {
 
 	maxAttempts := 3
 	for attempt := range maxAttempts {
-		enteredPassword, err := genPassword(false)
+		enteredKey, err := genKeyFromPassword(false)
 		if err != nil {
 			return fmt.Errorf("failed to read password: %w", err)
 		}
 
 		// fmt.Printf("%x\n%x\n", enteredPassword, app.config.Password)
-		if bytes.Equal(enteredPassword, app.config.Password) {
+		if bytes.Equal(enteredKey, app.config.Key) {
 			app.success("Password verified!")
 			app.config.LastVerify = time.Now()
 			if err := app.saveConfig(); err != nil {

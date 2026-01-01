@@ -5,14 +5,20 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
+)
 
-	"golang.org/x/crypto/pbkdf2"
+const (
+	fileMagic = "NENC"
+	fileVer   = byte(1)
+
+	appSalt = "enn-encryption-v1"
 )
 
 // if manifest is new then all the notes are naturally forcefully encryped
@@ -153,107 +159,84 @@ func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
 }
 
 func (app *App) encryptFile(inputPath, outputPath string) error {
-	// Read plaintext
 	plaintext, err := os.ReadFile(inputPath)
 	if err != nil {
 		return err
 	}
 
-	// Derive key from password
-	salt := make([]byte, 32)
-	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
-		return err
-	}
-
-	key := pbkdf2.Key(app.config.Password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
-
-	// Create cipher
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(app.config.Key)
 	if err != nil {
 		return err
 	}
 
-	// Create GCM
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return err
 	}
 
-	// Create nonce
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return err
 	}
 
-	// Encrypt
-	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+	// Optional but recommended: authenticate filename
+	aad := []byte(filepath.Base(inputPath))
 
-	// Write: salt + ciphertext
-	output := append(salt, ciphertext...)
+	ciphertext := gcm.Seal(nil, nonce, plaintext, aad)
 
-	return os.WriteFile(outputPath, output, 0644)
+	var buf bytes.Buffer
+	buf.Grow(len(fileMagic) + 1 + len(nonce) + len(ciphertext))
+	buf.WriteString(fileMagic)
+	buf.WriteByte(fileVer)
+	buf.Write(nonce)
+	buf.Write(ciphertext)
+
+	return os.WriteFile(outputPath, buf.Bytes(), 0600)
 }
 
 func (app *App) decryptFile(inputPath string) ([]byte, error) {
-	// Read encrypted data
 	data, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(data) < 32 {
-		return nil, fmt.Errorf("invalid encrypted file")
+	if len(data) < 4+1 {
+		return nil, errors.New("ciphertext too short")
 	}
 
-	// Extract salt
-	salt := data[:32]
-	ciphertext := data[32:]
+	if string(data[:4]) != fileMagic {
+		return nil, errors.New("invalid file magic")
+	}
 
-	// Derive key
-	key := pbkdf2.Key(app.config.Password, salt, pbkdf2Iterations, aesKeySize, sha256.New)
+	if data[4] != fileVer {
+		return nil, errors.New("unsupported file version")
+	}
 
-	// Create cipher
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(app.config.Key)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create GCM
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, err
 	}
 
+	offset := 5
 	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, fmt.Errorf("ciphertext too short")
+
+	if len(data) < offset+nonceSize {
+		return nil, errors.New("invalid ciphertext")
 	}
 
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	nonce := data[offset : offset+nonceSize]
+	ciphertext := data[offset+nonceSize:]
 
-	// Decrypt
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	aad := []byte(strings.TrimSuffix(filepath.Base(inputPath), ".enc"))
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("decryption failed (wrong password or corrupted data)")
 	}
-
 	return plaintext, nil
-}
-
-func (app *App) verifyEncryption(originalPath, encryptedPath string) error {
-	original, err := os.ReadFile(originalPath)
-	if err != nil {
-		return err
-	}
-
-	decrypted, err := app.decryptFile(encryptedPath)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(original, decrypted) {
-		return fmt.Errorf("decrypted content doesn't match original")
-	}
-
-	return nil
 }

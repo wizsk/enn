@@ -4,10 +4,72 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fatih/color"
+	"golang.org/x/crypto/argon2"
+	"golang.org/x/term"
 )
+
+func genKeyFromPassword(confirm bool) ([]byte, error) {
+	var password string
+
+	// Ask for password
+	for {
+		fmt.Print("Password: ")
+		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return nil, fmt.Errorf("genPassword: reading password: %w", err)
+		}
+		fmt.Println()
+		password = strings.TrimSpace(string(passwordBytes))
+
+		// Check password length
+		if len(password) < minPasswordLength {
+			fmt.Printf("Password must be at least %d characters\n", minPasswordLength)
+			continue
+		}
+		break
+	}
+
+	if confirm {
+		for {
+			fmt.Print("Confirm password: ")
+			confirmBytes, err := term.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				return nil, fmt.Errorf("genPassword: reading confirmation password: %w", err)
+			}
+			fmt.Println()
+
+			// Check if passwords match
+			if strings.TrimSpace(string(confirmBytes)) != password {
+				fmt.Println("Passwords don't match. Try again.")
+				continue
+			}
+			break
+		}
+	}
+
+	const (
+		argonTime = 3
+		argonMem  = 64 * 1024 // 64 MiB
+		argonPar  = 4
+		keyLen    = 32 // AES-256
+	)
+
+	key := argon2.IDKey(
+		[]byte(password),
+		[]byte(appSalt),
+		argonTime,
+		argonMem,
+		argonPar,
+		keyLen,
+	)
+
+	return key, nil
+}
 
 func (app *App) changePass() {
 	{
@@ -23,13 +85,13 @@ func (app *App) changePass() {
 		}
 	}
 
-	np, err := genPassword(true)
+	nk, err := genKeyFromPassword(true)
 	if err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
 	}
 
-	app.config.Password = np
+	app.config.Key = nk
 	app.config.LastVerify = time.Now()
 	if err = app.saveConfig(); err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))

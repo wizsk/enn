@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"os"
@@ -10,104 +9,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/fatih/color"
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/term"
 )
-
-func genPassword(confirm bool) ([]byte, error) {
-	var password string
-	var salt []byte
-
-	// Ask for password
-	for {
-		fmt.Print("Password: ")
-		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return nil, fmt.Errorf("genPassword: reading password: %w", err)
-		}
-		fmt.Println()
-		password = strings.TrimSpace(string(passwordBytes))
-
-		// Check password length
-		if len(password) < minPasswordLength {
-			fmt.Printf("Password must be at least %d characters\n", minPasswordLength)
-			continue
-		}
-		break
-	}
-
-	if confirm {
-		for {
-			// Confirm password
-			fmt.Print("Confirm password: ")
-			confirmBytes, err := term.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				return nil, fmt.Errorf("genPassword: reading confirmation password: %w", err)
-			}
-			fmt.Println()
-
-			// Check if passwords match
-			if strings.TrimSpace(string(confirmBytes)) != password {
-				fmt.Println("Passwords don't match. Try again.")
-				continue
-			}
-			break
-		}
-	}
-
-	// Ask for the salt (any arbitrary text)
-	for {
-		fmt.Print("Salt: ")
-		s, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return nil, fmt.Errorf("genPassword: reading salt: %w", err)
-		}
-		fmt.Println()
-		salt = bytes.TrimSpace(s)
-
-		// Check password length
-		if len(salt) < minSaltLength {
-			fmt.Printf("salt must be at least %d characters\n", minSaltLength)
-			continue
-		}
-		break
-	}
-
-	if confirm {
-		for {
-			fmt.Print("Confirm Salt: ")
-			s, err := term.ReadPassword(int(syscall.Stdin))
-			if err != nil {
-				return nil, fmt.Errorf("genPassword: reading salt: %w", err)
-			}
-			fmt.Println()
-			s = bytes.TrimSpace(s)
-
-			// Check password length
-			if !bytes.Equal(salt, s) {
-				fmt.Println("salts don't match. Try again.")
-				continue
-			}
-			break
-		}
-	}
-
-	// Argon2 Parameters
-	const timeCost = 3    // Number of iterations
-	const memoryCost = 64 // Memory in MiB
-	const parallelism = 4 // Number of threads
-	const keyLength = 64  // Length of the resulting hash
-
-	saltHash := sha256.Sum256(salt)
-
-	// Hash the password with Argon2
-	return argon2.Key([]byte(password), saltHash[:], timeCost, memoryCost*1024, parallelism, keyLength),
-		nil
-}
 
 func (app *App) verifyBackup() error {
 	app.log("Verifying backup integrity")
