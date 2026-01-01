@@ -195,9 +195,9 @@ func (app *App) run(forceEnc bool) error {
 	}
 
 	// Load or create manifest
-	var manifest *FileManifest
+	var manifest FileManifest
 	if forceEnc {
-		manifest = &FileManifest{make(map[string]FileInfo)}
+		manifest = FileManifest{make(map[string]FileInfo)}
 	} else {
 		m, err := app.loadManifest()
 		if err != nil {
@@ -212,27 +212,23 @@ func (app *App) run(forceEnc bool) error {
 		return err
 	}
 
-	if manifest.Equal(newManifest) {
-		app.info("No new changes was made nothing to commit")
-	} else {
-		// Save manifest
+	if !manifest.Equal(newManifest) {
 		if err := app.saveManifest(newManifest); err != nil {
 			return err
 		}
 
-		// Verify backup
-		if newManifest == nil || len(newManifest.Files) == 0 {
-			app.warning("No files found to encrypt. Skipping verifications")
+		if len(newManifest.Files) == 0 {
+			app.warning("No files encrypted files found. Skipping verifications")
 		} else {
 			if err := app.verifyBackup(); err != nil {
 				return err
 			}
 		}
+	}
 
-		// Git commit
-		if err := app.gitCommit(""); err != nil {
-			return err
-		}
+	// Git commit
+	if err := app.gitCommit("", newManifest); err != nil {
+		return err
 	}
 
 	// Show status

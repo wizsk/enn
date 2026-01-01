@@ -53,6 +53,7 @@ func (app *App) cleanNotes() error {
 		if err := app.saveManifest(mnf); err != nil {
 			return fmt.Errorf("cleanNotes: while saving manifest: %w", err)
 		}
+		return app.gitCommit("afeter cleaing", mnf)
 	}
 
 	return nil

@@ -6,14 +6,11 @@ import (
 	"strings"
 )
 
-func (fm *FileManifest) Equal(fm2 *FileManifest) bool {
-	if fm == nil && fm2 == nil {
+func (fm FileManifest) Equal(fm2 FileManifest) bool {
+	if fm.Files == nil && fm2.Files == nil {
 		return true
-	} else if fm == nil || fm2 == nil {
-		return false
-	} else if len(fm.Files) == len(fm2.Files) {
-		return true
-	} else if len(fm.Files) != len(fm2.Files) {
+	} else if fm.Files == nil || fm2.Files == nil ||
+		len(fm.Files) != len(fm2.Files) {
 		return false
 	}
 

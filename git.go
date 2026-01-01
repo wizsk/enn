@@ -79,11 +79,26 @@ func (app *App) initGitRepo() error {
 	return nil
 }
 
-func (app *App) gitCommit(cMsg string) error {
+func (app *App) gitCommit(cMsg string, mf FileManifest) error {
 	app.log("Starting git commit")
 
 	buf := new(bytes.Buffer)
-	cmd := newCmd(buf, buf, "git", "add", "*.enc", ".gitignore", ".manifest.json")
+
+	cmd := newCmd(buf, buf, "git", "add", "-u")
+	cmd.Dir = app.config.NotesDir
+	if err := cmd.Run(); err != nil {
+		fmt.Println(buf.String())
+		return fmt.Errorf("git add failed: %w", err)
+	}
+
+	args := make([]string, 0, len(mf.Files)+3)
+	args = append(args, "add", ".gitignore", ".manifest.json")
+	for k := range mf.Files {
+		args = append(args, k+".enc")
+	}
+
+	buf.Reset()
+	cmd = newCmd(buf, buf, "git", args...)
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		fmt.Println(buf.String())

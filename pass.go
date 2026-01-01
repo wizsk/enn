@@ -98,7 +98,7 @@ func (app *App) changePass() {
 		os.Exit(1)
 	}
 
-	manifest := &FileManifest{make(map[string]FileInfo)}
+	manifest := FileManifest{make(map[string]FileInfo)}
 	manifest, err = app.encryptNotes(manifest)
 	if err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
@@ -110,7 +110,7 @@ func (app *App) changePass() {
 		os.Exit(1)
 	}
 
-	if manifest == nil || len(manifest.Files) == 0 {
+	if len(manifest.Files) == 0 {
 		app.warning("No files found to encrypt. Skipping verifications and git commit")
 	} else {
 		// Verify backup
@@ -119,11 +119,12 @@ func (app *App) changePass() {
 			os.Exit(1)
 		}
 
-		// Git commit
-		if err := app.gitCommit(fmt.Sprintf("Password changed at %s", time.Now().Format(timeFormat))); err != nil {
-			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
-			os.Exit(1)
-		}
+	}
+
+	// Git commit
+	if err := app.gitCommit(fmt.Sprintf("Password changed at %s", time.Now().Format(timeFormat)), manifest); err != nil {
+		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+		os.Exit(1)
 	}
 
 	app.showStatus()

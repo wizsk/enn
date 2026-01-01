@@ -119,8 +119,8 @@ func (app *App) checkPasswordVerification(force bool) error {
 	return fmt.Errorf("password verification failed after %d attempts", maxAttempts)
 }
 
-func (app *App) loadManifest() (*FileManifest, error) {
-	manifest := &FileManifest{
+func (app *App) loadManifest() (FileManifest, error) {
+	manifest := FileManifest{
 		Files: make(map[string]FileInfo),
 	}
 
@@ -129,17 +129,17 @@ func (app *App) loadManifest() (*FileManifest, error) {
 		if os.IsNotExist(err) {
 			return manifest, nil
 		}
-		return nil, fmt.Errorf("failed to read manifest: %w", err)
+		return manifest, fmt.Errorf("failed to read manifest: %w", err)
 	}
 
-	if err := json.Unmarshal(data, manifest); err != nil {
-		return nil, fmt.Errorf("failed to parse manifest: %w", err)
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return manifest, fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
 	return manifest, nil
 }
 
-func (app *App) saveManifest(manifest *FileManifest) error {
+func (app *App) saveManifest(manifest FileManifest) error {
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)

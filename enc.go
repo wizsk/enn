@@ -23,17 +23,18 @@ const (
 
 // if manifest is new then all the notes are naturally forcefully encryped
 // btw, manifest is never modified
-func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
+func (app *App) encryptNotes(manifest FileManifest) (FileManifest, error) {
+	newMenifest := FileManifest{}
 	app.log("Starting encryption process")
 
 	mdFiles, err := filepath.Glob(filepath.Join(app.config.NotesDir, "*.md"))
 	if err != nil {
-		return nil, err
+		return newMenifest, err
 	}
 
 	if len(mdFiles) == 0 {
 		app.warning("No .md files found")
-		return nil, nil
+		return newMenifest, nil
 	}
 
 	successCount := 0
@@ -130,7 +131,7 @@ func (app *App) encryptNotes(manifest *FileManifest) (*FileManifest, error) {
 	}()
 
 	errs := []error{}
-	newMenifest := &FileManifest{make(map[string]FileInfo, len(mdFiles))}
+	newMenifest.Files = make(map[string]FileInfo, len(mdFiles))
 	for range mdFiles {
 		val := <-done
 		if val.err != nil {

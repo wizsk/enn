@@ -38,9 +38,8 @@ func (app *App) decryptAllMode() error {
 
 		// Check if output file already exists
 		if _, err := os.Stat(outputFile); err == nil {
-			app.warning(fmt.Sprintf("%s (unencrypted file already exists)", filename))
-			p := fmt.Sprintf("Do you want to overwrite %q?", filename)
-			if !confirmPromt(p, confirmPromtDefaultNo) {
+			app.warning(fmt.Sprintf("Unencrypted file already exists for: %s", filename))
+			if !confirmPromt("Do you want to overwrite it?", confirmPromtDefaultNo) {
 				continue
 			}
 		}
@@ -67,13 +66,13 @@ func (app *App) decryptAllMode() error {
 	}
 
 	fmt.Println()
-	if failCount == 0 {
-		app.success(fmt.Sprintf("Successfully decrypted all %d files!", successCount))
-	} else {
+	if failCount > 0 {
 		app.warning(fmt.Sprintf("Decrypted %d files, %d failed", successCount, failCount))
+	} else if successCount > 0 {
+		app.success(fmt.Sprintf("Successfully decrypted all %d file[s]!", successCount))
 	}
 
-	app.log(fmt.Sprintf("Decrypt-all completed: %d success, %d failed", successCount, failCount))
+	app.log(fmt.Sprintf("Decrypt-all completed: %d success[es], %d fail[s]", successCount, failCount))
 
 	return nil
 }
