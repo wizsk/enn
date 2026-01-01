@@ -93,6 +93,10 @@ func main() {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
+		if err := app.cleanNotes(); err != nil {
+			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 

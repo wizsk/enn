@@ -80,21 +80,23 @@ func (app *App) initGitRepo() error {
 }
 
 func (app *App) gitCommit(cMsg string, mf FileManifest) error {
+	args := make([]string, 0, len(mf.Files)+3)
+	args = append(args, "add", ".gitignore", ".manifest.json")
+
+	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
+	for _, e := range encFiles {
+		base := filepath.Base(e)
+		args = append(args, base)
+	}
+
 	app.log("Starting git commit")
 
 	buf := new(bytes.Buffer)
-
 	cmd := newCmd(buf, buf, "git", "add", "-u")
 	cmd.Dir = app.config.NotesDir
 	if err := cmd.Run(); err != nil {
 		fmt.Println(buf.String())
 		return fmt.Errorf("git add failed: %w", err)
-	}
-
-	args := make([]string, 0, len(mf.Files)+3)
-	args = append(args, "add", ".gitignore", ".manifest.json")
-	for k := range mf.Files {
-		args = append(args, k+".enc")
 	}
 
 	buf.Reset()
@@ -113,8 +115,6 @@ func (app *App) gitCommit(cMsg string, mf FileManifest) error {
 		return nil
 	}
 
-	// Count encrypted files
-	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))
 	if cMsg == "" {
 		cMsg = fmt.Sprintf("Backup: %d encrypted files - %s", len(encFiles), time.Now().Format(timeFormat))
 	}

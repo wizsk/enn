@@ -73,8 +73,10 @@ func (app *App) encryptNotes(manifest FileManifest) (FileManifest, error) {
 				// Check if encryption is needed
 				if oldInfo, exists := manifest.Files[filename]; exists {
 					if oldInfo.Hash == hash && oldInfo.Encrypted {
-						res <- result{suc: false, fn: filename, fi: oldInfo}
-						continue
+						if _, err = os.Stat(encryptedFile); err == nil {
+							res <- result{suc: false, fn: filename, fi: oldInfo}
+							continue
+						}
 					}
 				}
 
@@ -84,7 +86,7 @@ func (app *App) encryptNotes(manifest FileManifest) (FileManifest, error) {
 				backupFile := encryptedFile + ".backup"
 				if _, err := os.Stat(encryptedFile); err == nil {
 					if err := app.copyFile(encryptedFile, backupFile); err != nil {
-						res <- result{suc: false, err: fmt.Errorf("failed to backup %s: %w", filename, err)}
+						res <- result{err: fmt.Errorf("failed to backup %s: %w", filename, err)}
 					}
 				}
 
@@ -110,9 +112,8 @@ func (app *App) encryptNotes(manifest FileManifest) (FileManifest, error) {
 				os.Remove(backupFile)
 
 				app.success(fmt.Sprintf("Encrypted and verified: %s", filename))
-				// Update manifest
+
 				fi := FileInfo{
-					// Name:         filename,
 					Hash:         hash,
 					LastModified: fileInfo.ModTime(),
 					Encrypted:    true,

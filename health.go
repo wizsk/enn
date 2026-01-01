@@ -36,15 +36,12 @@ func (app *App) cleanNotes() error {
 		name := strings.TrimSuffix(base, ".enc") // foo.md
 
 		if _, ok := mdMap[name]; !ok && confirmPromt(fmt.Sprintf("Delete: %s", base), confirmPromtDefaultNo) {
+			mod = true
 			app.info(fmt.Sprintf("deleting: %s", e))
 			if err = os.Remove(e); err != nil {
 				return err
 			}
-
-			if _, ok := mnf.Files[name]; ok {
-				mod = true
-				delete(mnf.Files, name)
-			}
+			delete(mnf.Files, name)
 		}
 	}
 
@@ -55,7 +52,6 @@ func (app *App) cleanNotes() error {
 		}
 		return app.gitCommit("afeter cleaing", mnf)
 	}
-
 	return nil
 }
 
