@@ -26,10 +26,9 @@ type FileManifest struct {
 }
 
 type FileInfo struct {
-	// Name         string    `json:"name"` // fo.md
+	// Encrypted    bool      `json:"encrypted"`
 	Hash         string    `json:"hash"`
 	LastModified time.Time `json:"last_modified"`
-	Encrypted    bool      `json:"encrypted"`
 }
 
 // App holds application state

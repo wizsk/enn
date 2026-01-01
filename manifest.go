@@ -16,8 +16,8 @@ func (fm FileManifest) Equal(fm2 FileManifest) bool {
 
 	for k, v := range fm.Files {
 		v2, ok := fm2.Files[k]
-		if !ok || v.Hash != v2.Hash || !v.LastModified.Equal(v2.LastModified) ||
-			v.Encrypted != v2.Encrypted {
+		if !ok || v.Hash != v2.Hash ||
+			!v.LastModified.Equal(v2.LastModified) {
 			return false
 		}
 	}
