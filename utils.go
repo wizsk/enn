@@ -265,6 +265,11 @@ func ierr[T any](v T, _ error) T {
 	return v
 }
 
+// ignore value
+func ival[T any](_ T, e error) error {
+	return e
+}
+
 func printVersion() {
 	printVersionWritter(os.Stdout)
 }

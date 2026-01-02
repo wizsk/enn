@@ -21,7 +21,8 @@ func newCmd(o, e io.Writer, cmd string, args ...string) *exec.Cmd {
 	return c
 }
 
-func (app *App) initGitRepo() error {
+// if new init then -> true
+func (app *App) initGitRepo() (bool, error) {
 	gitDir := filepath.Join(app.config.NotesDir, ".git")
 
 	buf := new(bytes.Buffer)
@@ -32,7 +33,7 @@ func (app *App) initGitRepo() error {
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
-			return fmt.Errorf("failed to initialize git: %w", err)
+			return false, fmt.Errorf("failed to initialize git: %w", err)
 		}
 		app.success("Git repository initialized")
 	}
@@ -49,7 +50,7 @@ func (app *App) initGitRepo() error {
 			os.WriteFile(gitignorePath+".backup", existingContent, 0644)
 		}
 		if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
-			return fmt.Errorf("failed to write .gitignore: %w", err)
+			return false, fmt.Errorf("failed to write .gitignore: %w", err)
 		}
 		app.success("Created/updated .gitignore")
 	}
@@ -63,7 +64,7 @@ func (app *App) initGitRepo() error {
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
-			return fmt.Errorf("failed to initialize git: %w", err)
+			return false, fmt.Errorf("failed to initialize git: %w", err)
 		}
 
 		buf.Reset()
@@ -71,12 +72,13 @@ func (app *App) initGitRepo() error {
 		cmd.Dir = app.config.NotesDir
 		if err := cmd.Run(); err != nil {
 			fmt.Println(buf.String())
-			return fmt.Errorf("failed to initialize git: %w", err)
+			return false, fmt.Errorf("failed to initialize git: %w", err)
 		}
 		app.success("Initial commit created")
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 func (app *App) gitCommit(cMsg string, mf FileManifest) error {

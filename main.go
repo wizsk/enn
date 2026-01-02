@@ -55,7 +55,7 @@ func main() {
 			app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 			os.Exit(1)
 		}
-		app.success("Setup complete! Run without flags to encrypt notes, or use --dec-all to decrypt them.")
+		app.success("Setup complete! Now run without any flags")
 		return
 	}
 
@@ -173,15 +173,19 @@ func main() {
 
 func (app *App) initialize() error {
 	if app.configDir == "" {
-		homeDir, err := os.UserHomeDir()
+		confDir, err := os.UserConfigDir()
 		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to get home directory: %w", err)
+			}
+			confDir = filepath.Join(homeDir, ".config")
 		}
-		app.configDir = filepath.Join(homeDir, ".config", configFileName)
+		app.configDir = filepath.Join(confDir, configFileName)
 	}
 
 	// Create config directory
-	if err := os.MkdirAll(app.configDir, 0700); err != nil {
+	if err := os.MkdirAll(app.configDir, 0700); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -199,13 +203,33 @@ func (app *App) run(forceEnc bool) error {
 
 	app.log("Starting backup process")
 
+	fRunFilePath := filepath.Join(app.configDir, firstRunFileName)
+	isFRun := ival(os.Stat(fRunFilePath)) != nil
+	if isFRun {
+		if f, err := os.Create(fRunFilePath); err == nil {
+			f.Close()
+		}
+
+		if ef, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc")); len(ef) > 0 {
+			fmt.Println()
+			app.info("It seems like you are running for the first time after setting up notes directory")
+			app.info("There are %d encrypted notes", len(ef))
+			if confirmPromt("Would you like to decrypt all of them?", confirmPromtDefaultYes) {
+				return app.decryptAllMode()
+			}
+		}
+
+	}
+
 	// Check password verification
 	if err := app.checkPasswordVerification(false); err != nil {
 		return err
 	}
 
 	// Initialize git repository
-	if err := app.initGitRepo(); err != nil {
+	isNewInitGit, err := app.initGitRepo()
+	_ = isNewInitGit
+	if err != nil {
 		return err
 	}
 
@@ -241,20 +265,7 @@ func (app *App) run(forceEnc bool) error {
 		}
 	}
 
-	fr := filepath.Join(app.configDir, firstRunFileName)
-	if _, err := os.Stat(fr); err != nil {
-		ierr(os.Create(fr)).Close()
-
-		if ef, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc")); len(ef) > 0 {
-			fmt.Println()
-			app.info("It seems like you are running for the first time after setting up notes directory")
-			app.info("There are %d encrypted notes", len(ef))
-			if confirmPromt("Would you like to decrypt all of them?", confirmPromtDefaultYes) {
-				return app.decryptAllMode()
-			}
-		}
-
-	} else if err := app.gitCommit("", newManifest); err != nil {
+	if err := app.gitCommit("", newManifest); err != nil {
 		return err
 	}
 
