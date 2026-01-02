@@ -23,12 +23,11 @@ all: curr
 pi: pull install
 
 install: curr
-	@echo "installing TO:" $(BIN_DIR)/$(APP_NAME)
+	@echo "installing to:" $(BIN_DIR)/$(APP_NAME)
 	@mv $(OUTPUT_DIR)/$(APP_NAME) $(BIN_DIR)/
 
 curr:
 	@echo "Building satatic version for for current os"
-	@echo $(LDFLAGS)
 	@env CGO_ENABLED=0 go build $(LDFLAGS) -o $(OUTPUT_DIR)/ .
 
 release: clean format vet release_linux release_mac release_win
