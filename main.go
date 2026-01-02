@@ -25,7 +25,7 @@ func main() {
 	gpushFlag := flag.Bool("push", false, "git push")
 	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
 
-	flag.Usage = func() { fmt.Println(optionsTxt()) }
+	flag.Usage = func() { fmt.Println(optionsTxt(coloredStyler())) }
 	flag.Parse()
 
 	app := &App{
