@@ -2,12 +2,16 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -259,4 +263,30 @@ func getNotesDir() (string, error) {
 // ignore error
 func ierr[T any](v T, _ error) T {
 	return v
+}
+
+func printVersion() {
+	printVersionWritter(os.Stdout)
+}
+
+func printVersionWritter(wm io.Writer) {
+	w := new(bytes.Buffer)
+	fmt.Fprintf(w, "%s: %s\n", progName, progVersion)
+	if buildTime != "" {
+		if u, err := strconv.ParseInt(buildTime, 10, 64); err == nil {
+			u := time.Unix(u, 0)
+			fmt.Fprintf(w, "compilled at: %s\n", u.Format(time.RFC1123))
+		}
+	}
+
+	if gitCommit != "" {
+		fmt.Fprintf(w, "git commit: %s\n", gitCommit)
+	}
+	if gitCommitMsg != "" {
+		msg, err := base64.StdEncoding.DecodeString(gitCommitMsg)
+		if err == nil {
+			fmt.Fprintf(w, "git commit message: %s\n", msg)
+		}
+	}
+	wm.Write(w.Bytes())
 }

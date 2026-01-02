@@ -6,11 +6,18 @@ import (
 
 const (
 	progName           = "enn"
+	progVersion        = "v0.1"
 	configFileName     = "enn-conf"
 	firstRunFileName   = "first-ran"
 	verifyIntervalDays = 7
 	minPasswordLength  = 8
 	timeFormat         = "3:04 PM 02/01/06"
+)
+
+var (
+	buildTime    string
+	gitCommit    string
+	gitCommitMsg string
 )
 
 // Config holds the application configuration

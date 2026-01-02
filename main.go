@@ -24,9 +24,15 @@ func main() {
 	cleanFlag := flag.Bool("clean", false, "cleanup or delete deleted notes")
 	gpushFlag := flag.Bool("push", false, "git push")
 	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
+	verstionFlag := flag.Bool("version", false, "print version")
 
 	flag.Usage = func() { fmt.Println(optionsTxt(coloredStyler())) }
 	flag.Parse()
+
+	if *verstionFlag {
+		printVersion()
+		os.Exit(0)
+	}
 
 	app := &App{
 		noColor:   *noColorFlag,
