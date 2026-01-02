@@ -7,6 +7,7 @@ import (
 const (
 	progName           = "enn"
 	configFileName     = "enn-conf"
+	firstRunFileName   = "first-ran"
 	verifyIntervalDays = 7
 	minPasswordLength  = 8
 	timeFormat         = "3:04 PM 02/01/06"

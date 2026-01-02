@@ -131,8 +131,10 @@ func (app *App) copyFile(src, dst string) error {
 	return os.WriteFile(dst, data, 0644)
 }
 
-func (app *App) log(message string) {
-	logMsg := fmt.Sprintf("[%s] %s\n", time.Now().Format(timeFormat), message)
+func (app *App) log(format string, a ...any) {
+	frmt := "[" + time.Now().Format(timeFormat) + "] " + format + "\n"
+	logMsg := fmt.Sprintf(frmt, a...)
+
 	f, err := os.OpenFile(app.logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
@@ -141,23 +143,23 @@ func (app *App) log(message string) {
 	f.WriteString(logMsg)
 }
 
-func (app *App) success(message string) {
-	color.Green("SUCC: %s", message)
-	app.log("SUCCESS: " + message)
+func (app *App) success(format string, a ...any) {
+	color.Green("SUCC: "+format, a...)
+	app.log("SUCCESS: "+format, a...)
 }
 
-func (app *App) warning(message string) {
-	color.Yellow("WARN: %s", message)
-	app.log("WARNING: " + message)
+func (app *App) warning(format string, a ...any) {
+	color.Yellow("WARN: "+format, a...)
+	app.log("WARNING: "+format, a...)
 }
 
-func (app *App) info(message string) {
-	color.Cyan("INFO: %s", message)
+func (app *App) info(format string, a ...any) {
+	color.Cyan("INFO: "+format, a...)
 }
 
-func (app *App) errorMsg(message string) {
-	color.Red("ERRO: %s", message)
-	app.log("ERROR: " + message)
+func (app *App) errorMsg(format string, a ...any) {
+	color.Red("ERRO: "+format, a...)
+	app.log("ERROR: "+format, a...)
 }
 
 type confirmPromtVal uint
@@ -252,4 +254,9 @@ func getNotesDir() (string, error) {
 	}
 
 	return notesDir, nil
+}
+
+// ignore error
+func ierr[T any](v T, _ error) T {
+	return v
 }

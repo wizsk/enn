@@ -108,13 +108,18 @@ func main() {
 				app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 				os.Exit(1)
 			}
-			app.config.NotesDir = newNotesDir
-			if err = app.saveConfig(); err != nil {
-				app.errorMsg(fmt.Sprintf("ERROR: %v", err))
-				os.Exit(1)
+			if newNotesDir == app.config.NotesDir {
+				fmt.Printf("New and previous notes directory are the same: %s\n", app.config.NotesDir)
+			} else {
+				app.config.NotesDir = newNotesDir
+				if err = app.saveConfig(); err != nil {
+					app.errorMsg(fmt.Sprintf("ERROR: %v", err))
+					os.Exit(1)
+				}
+				os.Remove(filepath.Join(app.configDir, firstRunFileName))
+				fmt.Printf("Notes directory changed to: %s\n", app.config.NotesDir)
 			}
 		}
-		fmt.Printf("Notes directory changed to: %s\n", app.config.NotesDir)
 
 		if confirmPromt("Do you want to change the password?", confirmPromtDefaultNone) {
 			app.changePass()
@@ -230,8 +235,20 @@ func (app *App) run(forceEnc bool) error {
 		}
 	}
 
-	// Git commit
-	if err := app.gitCommit("", newManifest); err != nil {
+	fr := filepath.Join(app.configDir, firstRunFileName)
+	if _, err := os.Stat(fr); err != nil {
+		ierr(os.Create(fr)).Close()
+
+		if ef, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc")); len(ef) > 0 {
+			fmt.Println()
+			app.info("It seems like you are running for the first time after setting up notes directory")
+			app.info("There are %d encrypted notes", len(ef))
+			if confirmPromt("Would you like to decrypt all of them?", confirmPromtDefaultYes) {
+				return app.decryptAllMode()
+			}
+		}
+
+	} else if err := app.gitCommit("", newManifest); err != nil {
 		return err
 	}
 
