@@ -89,19 +89,21 @@ func (app *App) verifyBackup() error {
 	return fmt.Errorf("%d files failed verification out of %d total", failed, verified+failed)
 }
 
+func replaceHomeWithTilda(p string) string {
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		return strings.Replace(p, homeDir, "~", 1)
+	}
+	return p
+}
+
 func (app *App) showStatus() {
 	fmt.Println()
 	fmt.Println("==========================================")
 	fmt.Println("  Backup Status")
 	fmt.Println("==========================================")
 
-	notesDir := app.config.NotesDir
-	confDir := app.configDir
-
-	if homeDir, err := os.UserHomeDir(); err == nil {
-		notesDir = strings.Replace(notesDir, homeDir, "~", 1)
-		confDir = strings.Replace(confDir, homeDir, "~", 1)
-	}
+	notesDir := replaceHomeWithTilda(app.config.NotesDir)
+	confDir := replaceHomeWithTilda(app.configDir)
 
 	fmt.Printf("Notes directory: %s\n", notesDir)
 	fmt.Printf("Config directory: %s\n", confDir)
@@ -228,7 +230,7 @@ func getNotesDir() (string, error) {
 	var err error
 
 	for {
-		fmt.Println("Enter the path to your notes directory (use ~ for your home directory):")
+		fmt.Println("Enter the path to your notes directory (use ~ for your home directory and . (dot) for current direcoty):")
 		fmt.Print("> ")
 		notesDir, err = reader.ReadString('\n')
 		if err != nil {

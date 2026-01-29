@@ -336,7 +336,7 @@ func (app *App) decryptMode(encryptedPath, outputPath string) error {
 		return fmt.Errorf("file not found: %s", encryptedPath)
 	}
 
-	app.info(fmt.Sprintf("Decrypting: %s", encryptedPath))
+	app.info(fmt.Sprintf("Decrypting: %s", replaceHomeWithTilda(encryptedPath)))
 
 	// Decrypt file
 	plaintext, err := app.decryptFile(encryptedPath)
@@ -349,7 +349,7 @@ func (app *App) decryptMode(encryptedPath, outputPath string) error {
 		if err := os.WriteFile(outputPath, plaintext, 0644); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
-		app.success(fmt.Sprintf("Decrypted to: %s", outputPath))
+		app.success(fmt.Sprintf("Decrypted to: %s", replaceHomeWithTilda(outputPath)))
 	} else {
 		// Write to stdout
 		os.Stdout.Write(plaintext)
