@@ -47,6 +47,8 @@ var options = [...]Option{
 	{"--ep", "", "Encypt then git push"},
 	{"--push", "", "git push"},
 	{"--pull", "", "git pull and decrypt new or modified notes"},
+	{"--status", "", "Print status"},
+	{"--version", "", "Print version"},
 	{"--help", "", "Get help message"},
 }
 

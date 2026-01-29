@@ -94,8 +94,17 @@ func (app *App) showStatus() {
 	fmt.Println("==========================================")
 	fmt.Println("  Backup Status")
 	fmt.Println("==========================================")
-	fmt.Printf("Notes directory: %s\n", app.config.NotesDir)
-	fmt.Printf("Config directory: %s\n", app.configDir)
+
+	notesDir := app.config.NotesDir
+	confDir := app.configDir
+
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		notesDir = strings.Replace(notesDir, homeDir, "~", 1)
+		confDir = strings.Replace(confDir, homeDir, "~", 1)
+	}
+
+	fmt.Printf("Notes directory: %s\n", notesDir)
+	fmt.Printf("Config directory: %s\n", confDir)
 
 	mdFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.md"))
 	encFiles, _ := filepath.Glob(filepath.Join(app.config.NotesDir, "*.enc"))

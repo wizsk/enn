@@ -29,6 +29,7 @@ func main() {
 	flag.BoolVar(&encryptAndPush, "ep", false, "encrypt and git push")
 	gpushFlag := flag.Bool("push", false, "git push")
 	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
+	showStatusFlag := flag.Bool("status", false, "print status")
 	verstionFlag := flag.Bool("version", false, "print version")
 
 	flag.Usage = func() { fmt.Println(optionsTxt(coloredStyler())) }
@@ -68,6 +69,11 @@ func main() {
 	if err := app.loadConfig(); err != nil {
 		app.errorMsg(fmt.Sprintf("ERROR: %v", err))
 		os.Exit(1)
+	}
+
+	if *showStatusFlag {
+		app.showStatus()
+		os.Exit(0)
 	}
 
 	if *gpushFlag {

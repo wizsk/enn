@@ -6,7 +6,7 @@ import (
 
 const (
 	progName           = "enn"
-	progVersion        = "v0.1"
+	progVersion        = "v0.2"
 	configFileName     = "enn-conf"
 	firstRunFileName   = "first-ran"
 	verifyIntervalDays = 7
