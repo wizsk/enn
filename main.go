@@ -9,6 +9,10 @@ import (
 	"github.com/fatih/color"
 )
 
+var (
+	encryptAndPush bool
+)
+
 func main() {
 	// Command line flags
 	confDirFlag := flag.String("conf-dir", "", "Config dir (default: ~/.config/"+configFileName+")")
@@ -22,6 +26,7 @@ func main() {
 	changePassFlag := flag.Bool("change-pass", false, "chagne password")
 	noColorFlag := flag.Bool("no-color", false, "Disable colored output")
 	cleanFlag := flag.Bool("clean", false, "cleanup or delete deleted notes")
+	flag.BoolVar(&encryptAndPush, "ep", false, "encrypt and git push")
 	gpushFlag := flag.Bool("push", false, "git push")
 	gpullFlag := flag.Bool("pull", false, "git pull and decrypt new or modified files")
 	verstionFlag := flag.Bool("version", false, "print version")
@@ -274,6 +279,14 @@ func (app *App) run(forceEnc bool) error {
 
 	app.success("Backup completed successfully!")
 	app.log("Backup process completed")
+
+	if encryptAndPush {
+		fmt.Println()
+		app.info("Pusing")
+		if err := app.gitPush(); err != nil {
+			app.errorMsg("While pushing: %s", err)
+		}
+	}
 
 	fmt.Println()
 	app.warnPossibleDeletedNotes()
