@@ -44,7 +44,7 @@ var options = [...]Option{
 	{"--change-pass", "", "Change password"},
 	{"--no-color", "", "Disable colored output"},
 	{"--clean", "", "Cleanup deleted notes"},
-	{"--ep", "", "Encypt then git push"},
+	{"--ep", "", "Encypt then git push. Same as running " + progName + " and " + progName + " --push"},
 	{"--push", "", "git push"},
 	{"--pull", "", "git pull and decrypt new or modified notes"},
 	{"--status", "", "Print status"},
