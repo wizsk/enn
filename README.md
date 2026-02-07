@@ -6,13 +6,15 @@ Encrypt notes with AES.
 
 **TLDR:**
 
-- Simple
+- Simple codebase and to use
 - Single password
-- git backup
-- Multi device support
+- git based backup
 
-It's designed to be simple and easy to use. It's core goal is to have a single
+It's designed to be simple. It's core goal is to have a single
 directory and have all the notes in `.md` format, no sub-directories.
+
+The directory containing notes does not have any subr-direcitories. It looks for
+markdown `.md` files in the directory.
 
 
 Git is primarily used to backup encrypted `.enc` files. There are flags build
