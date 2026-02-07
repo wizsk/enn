@@ -1,6 +1,24 @@
 # enn
 
-Encrypt notes with aes
+Encrypt notes with AES.
+
+## Why make it?
+
+**TLDR:**
+
+- Simple
+- Single password
+- git backup
+- Multi device support
+
+It's designed to be simple and easy to use. It's core goal is to have a single
+directory and have all the notes in `.md` format, no sub-directories.
+
+
+Git is primarily used to backup encrypted `.enc` files. There are flags build
+in, `--push` and `--pull` from the remote repo. If file was changed in the remote
+(most likely) from another device then it will ask if you want to decrypt them.
+
 
 ## Install
 
