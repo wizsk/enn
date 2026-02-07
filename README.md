@@ -8,11 +8,9 @@ Own your notes. Backup them with git where ever you want.
 
 - Simple codebase and to use
 - Single password
+- Only markdown `.md` files
+- No sub-directories
 - git based backup
-- Fast
-
-A single directory containing all the notes in `.md` format, no sub-directories.
-Encrypts all the notes and git commits only `.enc` files.
 
 
 ## Install
