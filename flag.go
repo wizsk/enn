@@ -56,8 +56,8 @@ func _optionsTxt() string {
 	b := color.New(color.Bold)
 	bu := color.New(color.Bold, color.Underline)
 	rb := color.New(color.FgRed, color.Bold)
-	return `A program to keep your ` + rb.Sprint("thoughts") + ` safe
-` + bu.Sprint("Usage:") + " " + b.Sprint(progName) + ` [OPTIONS]
+	return `A program to keeps your ` + rb.Sprint("thoughts") + ` safe
+` + bu.Sprint("Usage") + ": " + b.Sprint(progName) + ` [OPTIONS]
 
 ` + bu.Sprint("Options:") + `
   ` + b.Sprint("--conf-dir") + ` <path>
@@ -91,11 +91,11 @@ func _optionsTxt() string {
 func optionsTxt(st Styler) string {
 	var sb strings.Builder
 
-	sb.WriteString("A program to keep your ")
+	sb.WriteString("A program to keeps your ")
 	sb.WriteString(st.RB("thoughts"))
 	sb.WriteString(" safe\n\n")
 
-	sb.WriteString(st.BU("Usage:") + " " + st.B(progName) + " [OPTIONS]\n\n")
+	sb.WriteString(st.BU("Usage") + ": " + st.B(progName) + " [OPTIONS]\n\n")
 	sb.WriteString(st.BU("Options:\n"))
 
 	for _, o := range options {

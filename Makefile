@@ -22,9 +22,9 @@ all: curr
 
 pi: pull install
 
-install: curr
-	@echo "installing to:" $(BIN_DIR)/$(APP_NAME)
-	@mv $(OUTPUT_DIR)/$(APP_NAME) $(BIN_DIR)/
+install:
+	@echo "installing to:" $(GOPATH)/bin
+	@env CGO_ENABLED=0 go install $(LDFLAGS)
 
 curr:
 	@echo "Building satatic version for for current os"
